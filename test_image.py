@@ -33,7 +33,7 @@ from rfb_esrgan_pytorch import Generator
 from rfb_esrgan_pytorch import cal_niqe
 from rfb_esrgan_pytorch import select_device
 
-parser = argparse.ArgumentParser(description="ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks.")
+parser = argparse.ArgumentParser(description="Perceptual Extreme Super Resolution Network with Receptive Field Block.")
 parser.add_argument("--lr", type=str,
                     help="Test low resolution image name.")
 parser.add_argument("--hr", type=str,

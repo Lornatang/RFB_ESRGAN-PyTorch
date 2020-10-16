@@ -1,28 +1,40 @@
-# ESRGAN-PyTorch
+# RFB_ESRGAN-PyTorch
 
 ### Overview
-This repository contains an op-for-op PyTorch reimplementation of [ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks](https://arxiv.org/abs/1809.00219).
+This repository contains an op-for-op PyTorch reimplementation of 
+[Perceptual Extreme Super Resolution Network with Receptive Field Block](https://arxiv.org/abs/2005.12597).
 
 ### Table of contents
-1. [About Enhanced Super-Resolution Generative Adversarial Networks](#about-enhanced-super-resolution-generative-adversarial-networks)
+1. [Perceptual Extreme Super Resolution Network with Receptive Field Block](#about-perceptual-extreme-super-resolution-network-with-receptive-field-block)
 2. [Model Description](#model-description)
 3. [Installation](#installation)
     * [Clone and install requirements](#clone-and-install-requirements)
-    * [Download pretrained weights](#download-pretrained-weights)
     * [Download dataset](#download-dataset)
 4. [Test](#test)
-    * [Basic test](#basic-test)
     * [Test benchmark](#test-benchmark)
     * [Test image](#test-image)
+    * [Test video](#test-video)
 4. [Train](#train-eg-div2k)
 5. [Contributing](#contributing) 
 6. [Credit](#credit)
 
-### About Enhanced Super-Resolution Generative Adversarial Networks
+### About Perceptual Extreme Super Resolution Network with Receptive Field Block
 
-If you're new to ESRGAN, here's an abstract straight from the paper:
+If you're new to RFB-ESRGAN, here's an abstract straight from the paper:
 
-The Super-Resolution Generative Adversarial Network (SRGAN) is a seminal work that is capable of generating realistic textures during single image super-resolution. However, the hallucinated details are often accompanied with unpleasant artifacts. To further enhance the visual quality, we thoroughly study three key components of SRGAN - network architecture, adversarial loss and perceptual loss, and improve each of them to derive an Enhanced SRGAN (ESRGAN). In particular, we introduce the Residual-in-Residual Dense Block (RRDB) without batch normalization as the basic network building unit. Moreover, we borrow the idea from relativistic GAN to let the discriminator predict relative realness instead of the absolute value. Finally, we improve the perceptual loss by using the features before activation, which could provide stronger supervision for brightness consistency and texture recovery. Benefiting from these improvements, the proposed ESRGAN achieves consistently better visual quality with more realistic and natural textures than SRGAN and won the first place in the PIRM2018-SR Challenge. The code is available at [this https URL](https://github.com/xinntao/ESRGAN) .
+Perceptual Extreme Super-Resolution for single image is extremely difficult, because the texture details of 
+different images vary greatly. To tackle this difficulty, we develop a super resolution network with 
+receptive field block based on Enhanced SRGAN. We call our network RFB-ESRGAN. The key contributions are 
+listed as follows. First, for the purpose of extracting multi-scale information and enhance the feature 
+discriminability, we applied receptive field block (RFB) to super resolution. RFB has achieved competitive 
+results in object detection and classification. Second, instead of using large convolution kernels in 
+multi-scale receptive field block, several small kernels are used in RFB, which makes us be able to 
+extract detailed features and reduce the computation complexity. Third, we alternately use different 
+upsampling methods in the upsampling stage to reduce the high computation complexity and still remain 
+satisfactory performance. Fourth, we use the ensemble of 10 models of different iteration to improve 
+the robustness of model and reduce the noise introduced by each individual model. Our experimental results 
+show the superior performance of RFB-ESRGAN. According to the preliminary results of 
+NTIRE 2020 Perceptual Extreme Super-Resolution Challenge, our solution ranks first among all the participants.
 
 ### Model Description
 
@@ -39,14 +51,7 @@ and if it's 0, it's not real.
 ```bash
 $ git clone https://github.com/Lornatang/ESRGAN-PyTorch.git
 $ cd ESRGAN-PyTorch/
-$ pip install -r requirements.txt
-```
-
-#### Download pretrained weights
-
-```bash
-$ cd weights/
-$ bash download_weights.sh
+$ pip3 install -r requirements.txt
 ```
 
 #### Download dataset
@@ -58,87 +63,75 @@ $ bash download_dataset.sh
 
 ### Test
 
-Using pre training model to generate pictures.
-
-#### Basic test
-
-```text
-usage: test.py [-h] [--dataroot DATAROOT] [-j N] [--image-size IMAGE_SIZE]
-               [--scale-factor SCALE_FACTOR] [--cuda] [--weights WEIGHTS]
-               [--outf OUTF] [--manualSeed MANUALSEED]
-
-PyTorch Enhance Super Resolution GAN.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --dataroot DATAROOT   Path to dataset. (default:`./data/Set5`)
-  -j N, --workers N     Number of data loading workers. (default:0)
-  --image-size IMAGE_SIZE
-                        Size of the data crop (squared assumed). (default:128)
-  --scale-factor SCALE_FACTOR
-                        Low to high resolution scaling factor. (default:4).
-  --cuda                Enables cuda
-  --weights WEIGHTS     Path to weights
-                        (default:`./weights/ESRGAN_RRDB_X4.pth`).
-  --outf OUTF           folder to output images. (default:`./result`).
-  --manualSeed MANUALSEED
-                        Seed for initializing training. (default:0)
-
-# Example
-$ python test.py --dataroot ./data/Set5 --cuda --weights ./weights/ESRGAN_RRDB_X4.pth
-```
-
 #### Test benchmark
 
 ```text
 usage: test_benchmark.py [-h] [--dataroot DATAROOT] [-j N]
-                         [--image-size IMAGE_SIZE] [--scale-factor {4,8,16}]
-                         [--cuda] [--weights WEIGHTS] [--outf OUTF]
-                         [--manualSeed MANUALSEED]
+                         [--upscale-factor {2,4}] [--model-path PATH]
+                         [--device DEVICE]
 
-PyTorch Enhance Super Resolution GAN.
+Perceptual Extreme Super Resolution Network with Receptive Field Block.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --dataroot DATAROOT   Path to datasets. (default:`./data/DIV2K`)
-  -j N, --workers N     Number of data loading workers. (default:0)
-  --image-size IMAGE_SIZE
-                        Size of the data crop (squared assumed). (default:128)
-  --scale-factor {4,8,16}
+  --dataroot DATAROOT   Path to datasets. (default:`./data`)
+  -j N, --workers N     Number of data loading workers. (default:4)
+  --upscale-factor {2,4}
                         Low to high resolution scaling factor. (default:4).
-  --cuda                Enables cuda
-  --weights WEIGHTS     Path to weights.
-                        (default:`./weights/ESRGAN_RRDB_X4.pth`).
-  --outf OUTF           folder to output images. (default:`./result`).
-  --manualSeed MANUALSEED
-                        Seed for initializing training. (default:0)
+  --model-path PATH     Path to latest checkpoint for model. (default:
+                        ``./weights/RFB_ESRGAN_4x.pth``).
+  --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default:
+                        ``CUDA:0``).
+
 
 # Example
-$ python test_benchmark.py --dataroot ./data/DIV2K --cuda --weights ./weights/ESRGAN_RRDB_X4.pth
+$ python test_benchmark.py --dataroot ./data/DIV2K --upscale-factor 4 --model-path ./weight/RFB_ESRGAN_X4.pth --device 0
 ```
 
 #### Test image
 
 ```text
-usage: test_image.py [-h] [--file FILE] [--weights WEIGHTS] [--cuda]
-                     [--image-size IMAGE_SIZE] [--scale-factor SCALE_FACTOR]
+usage: test_image.py [-h] [--lr LR] [--hr HR] [--upscale-factor {2,4}]
+                     [--model-path PATH] [--device DEVICE]
 
-PyTorch Enhance Super Resolution GAN.
+Perceptual Extreme Super Resolution Network with Receptive Field Block.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --file FILE           Test low resolution image name.
-                        (default:`./assets/baby.png`)
-  --weights WEIGHTS     Generator model name.
-                        (default:`weights/ESRGAN_RRDB_X4.pth`)
-  --cuda                Enables cuda
-  --image-size IMAGE_SIZE
-                        size of the data crop (squared assumed). (default:128)
-  --scale-factor SCALE_FACTOR
-                        Super resolution upscale factor
+  --lr LR               Test low resolution image name.
+  --hr HR               Raw high resolution image name.
+  --upscale-factor {2,4}
+                        Low to high resolution scaling factor. (default:4).
+  --model-path PATH     Path to latest checkpoint for model. (default:
+                        ``./weight/RFB_ESRGAN_4x.pth``).
+  --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default:
+                        ``CUDA:0``).
 
 # Example
-$ python test_image.py --file ./assets/baby.png --cuda --weights ./weights/ESRGAN_RRDB_X4.pth
+$ python test_image.py --lr ./lr.png --hr ./hr.png --upscale-factor 4 --model-path ./weight/RFB_ESRGAN_X4.pth --device 0
+```
+
+#### Test video
+
+```text
+usage: test_video.py [-h] --file FILE [--upscale-factor {2,4}]
+                     [--model-path PATH] [--device DEVICE] [--view]
+
+RFB_ESRGAN algorithm is applied to video files.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --file FILE           Test low resolution video name.
+  --upscale-factor {2,4}
+                        Low to high resolution scaling factor. (default:4).
+  --model-path PATH     Path to latest checkpoint for model. (default:
+                        ``./weight/RFB_ESRGAN_4x.pth``).
+  --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default:
+                        ``CUDA:0``).
+  --view                Super resolution real time to show.
+
+# Example
+$ python test_video.py --file ./lr.mp4 --upscale-factor 4 --model-path ./weight/RFB_ESRGAN_X4.pth --device 0
 ```
 
 Low resolution / Recovered High Resolution / Ground Truth
@@ -149,49 +142,46 @@ Low resolution / Recovered High Resolution / Ground Truth
 ### Train (e.g DIV2K)
 
 ```text
-usage: train.py [-h] [--dataroot DATAROOT] [-j N] [--epochs N]
-                [--image-size IMAGE_SIZE] [--scale-factor {4,8,16}] [-b N]
-                [--b1 B1] [--b2 B2] [-p N] [--cuda] [--netG NETG]
-                [--netD NETD] [--outf OUTF] [--manualSeed MANUALSEED]
+usage: train.py [-h] [--dataroot DATAROOT] [-j N] [--start-epoch N]
+                [--psnr-iters N] [--iters N] [-b N] [--psnr-lr PSNR_LR]
+                [--lr LR] [--upscale-factor {2,4}] [--resume_PSNR] [--resume]
+                [--manualSeed MANUALSEED] [--device DEVICE]
 
-PyTorch Enhance Super Resolution GAN.
+Perceptual Extreme Super Resolution Network with Receptive Field Block.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --dataroot DATAROOT   Path to datasets. (default:`./data/DIV2K`)
-  -j N, --workers N     Number of data loading workers. (default:0)
-  --epochs N            Number of total epochs to run. (default:60)
-  --image-size IMAGE_SIZE
-                        Size of the data crop (squared assumed). (default:128)
-  --scale-factor {4,8,16}
-                        Low to high resolution scaling factor. (default:4).
+  --dataroot DATAROOT   Path to datasets. (default:`./data`)
+  -j N, --workers N     Number of data loading workers. (default:4)
+  --start-epoch N       manual epoch number (useful on restarts)
+  --psnr-iters N        The number of iterations is needed in the training of
+                        PSNR model. (default:1e6)
+  --iters N             The training of srgan model requires the number of
+                        iterations. (default:4e5)
   -b N, --batch-size N  mini-batch size (default: 16), this is the total batch
                         size of all GPUs on the current node when using Data
                         Parallel or Distributed Data Parallel.
-  --b1 B1               coefficients used for computing running averages of
-                        gradient and its square. (default:0.9)
-  --b2 B2               coefficients used for computing running averages of
-                        gradient and its square. (default:0.999)
-  -p N, --print-freq N  Print frequency. (default:5)
-  --cuda                Enables cuda
-  --netG NETG           Path to netG (to continue training).
-  --netD NETD           Path to netD (to continue training).
-  --outf OUTF           folder to output images. (default:`./output`).
+  --psnr-lr PSNR_LR     Learning rate for PSNR model. (default:2e-4)
+  --lr LR               Learning rate. (default:1e-4)
+  --upscale-factor {2,4}
+                        Low to high resolution scaling factor. (default:4).
+  --resume_PSNR         Path to latest checkpoint for PSNR model.
+  --resume              Path to latest checkpoint for Generator.
   --manualSeed MANUALSEED
-                        Seed for initializing training. (default:0)
+                        Seed for initializing training. (default:10000)
+  --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default: ``).
 
 # Example (e.g DIV2K)
-$ python train.py --dataroot ./data/DIV2K --cuda --scale-factor 4
+$ python train.py --dataroot ./data/DIV2K --upscale-factor 4
 ```
 
 If you want to load weights that you've trained before, run the following command.
 
 ```bash
 $ python train.py --dataroot ./data/DIV2K \
-                  --cuda                  \
-                  --scale-factor 4        \
-                  --netG ./weights/ESRGAN_RRDB_epoch_50.pth \
-                  --netD ./weights/ESRGAN_RRDB_epoch_50.pth 
+                  --upscale-factor 4        \
+                  --resume_PSNR \
+                  --resume
 ```
 
 ### Contributing
@@ -202,21 +192,31 @@ I look forward to seeing what the community does with these models!
 
 ### Credit
 
-#### ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks
-_Xintao Wang, Ke Yu, Shixiang Wu, Jinjin Gu, Yihao Liu, Chao Dong, Chen Change Loy, Yu Qiao, Xiaoou Tang_ <br>
+#### Perceptual Extreme Super Resolution Network with Receptive Field Block
+_Taizhang Shang, Qiuju Dai, Shengchen Zhu, Tong Yang, Yandong Guo_ <br>
 
 **Abstract** <br>
-The Super-Resolution Generative Adversarial Network (SRGAN) is a seminal work that is capable of generating realistic textures during single image super-resolution. However, the hallucinated details are often accompanied with unpleasant artifacts. To further enhance the visual quality, we thoroughly study three key components of SRGAN - network architecture, adversarial loss and perceptual loss, and improve each of them to derive an Enhanced SRGAN (ESRGAN). In particular, we introduce the Residual-in-Residual Dense Block (RRDB) without batch normalization as the basic network building unit. Moreover, we borrow the idea from relativistic GAN to let the discriminator predict relative realness instead of the absolute value. Finally, we improve the perceptual loss by using the features before activation, which could provide stronger supervision for brightness consistency and texture recovery. Benefiting from these improvements, the proposed ESRGAN achieves consistently better visual quality with more realistic and natural textures than SRGAN and won the first place in the PIRM2018-SR Challenge. The code is available at [this https URL](https://github.com/xinntao/ESRGAN) .
+Perceptual Extreme Super-Resolution for single image is extremely difficult, because the texture details of 
+different images vary greatly. To tackle this difficulty, we develop a super resolution network with 
+receptive field block based on Enhanced SRGAN. We call our network RFB-ESRGAN. The key contributions are 
+listed as follows. First, for the purpose of extracting multi-scale information and enhance the feature 
+discriminability, we applied receptive field block (RFB) to super resolution. RFB has achieved competitive 
+results in object detection and classification. Second, instead of using large convolution kernels in 
+multi-scale receptive field block, several small kernels are used in RFB, which makes us be able to 
+extract detailed features and reduce the computation complexity. Third, we alternately use different 
+upsampling methods in the upsampling stage to reduce the high computation complexity and still remain 
+satisfactory performance. Fourth, we use the ensemble of 10 models of different iteration to improve 
+the robustness of model and reduce the noise introduced by each individual model. Our experimental results 
+show the superior performance of RFB-ESRGAN. According to the preliminary results of 
+NTIRE 2020 Perceptual Extreme Super-Resolution Challenge, our solution ranks first among all the participants.
 
-[[Paper]](https://arxiv.org/pdf/1809.00219)
+[[Paper]](https://arxiv.org/pdf/2005.12597)
 
 ```
-@misc{wang2018esrgan,
-    title={ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks},
-    author={Xintao Wang and Ke Yu and Shixiang Wu and Jinjin Gu and Yihao Liu and Chao Dong and Chen Change Loy and Yu Qiao and Xiaoou Tang},
-    year={2018},
-    eprint={1809.00219},
-    archivePrefix={arXiv},
-    primaryClass={cs.CV}
+@misc{2005.12597,
+    Author = {Taizhang Shang and Qiuju Dai and Shengchen Zhu and Tong Yang and Yandong Guo},
+    Title = {Perceptual Extreme Super Resolution Network with Receptive Field Block},
+    Year = {2020},
+    Eprint = {arXiv:2005.12597},
 }
 ```

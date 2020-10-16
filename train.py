@@ -18,19 +18,19 @@ import os
 import random
 
 import torch.nn as nn
+import torch.optim as optim
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.utils as vutils
 from tqdm import tqdm
-import torch.optim as optim
 
-from rfb_RFB_esrgan_pytorch import DatasetFromFolder
-from rfb_RFB_esrgan_pytorch import Discriminator
-from rfb_RFB_esrgan_pytorch import VGG34Loss
-from rfb_RFB_esrgan_pytorch import Generator
-from rfb_RFB_esrgan_pytorch import init_torch_seeds
-from rfb_RFB_esrgan_pytorch import load_checkpoint
-from rfb_RFB_esrgan_pytorch import select_device
+from rfb_esrgan_pytorch import DatasetFromFolder
+from rfb_esrgan_pytorch import Discriminator
+from rfb_esrgan_pytorch import Generator
+from rfb_esrgan_pytorch import VGG34Loss
+from rfb_esrgan_pytorch import init_torch_seeds
+from rfb_esrgan_pytorch import load_checkpoint
+from rfb_esrgan_pytorch import select_device
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +112,7 @@ scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
 
 # Loading PSNR pre training model
 if args.resume_PSNR:
-    args.start_epoch = load_checkpoint(netG, optimizer, f"./weight/RRFDBNet_PSNR_{args.upscale_factor}x_checkpoint.pth")
+    args.start_epoch = load_checkpoint(netG, optimizer, f"./weight/RFDBNet_PSNR_{args.upscale_factor}x_checkpoint.pth")
 
 # We use vgg34 as our feature extraction method by default.
 vgg_criterion = VGG34Loss().to(device)
@@ -125,21 +125,21 @@ netG.train()
 netD.train()
 
 # Pre-train generator using raw MSE loss
-logger.info(f"[*] Start training RRFDBNet for PSNR model based on L1 loss.")
+logger.info(f"[*] Start training RFDBNet for PSNR model based on L1 loss.")
 logger.info(f"[*] Generator pre-training for {psnr_epochs} epochs.")
-logger.info(f"[*] Searching RRFDBNet for PSNR pretrained model weights.")
+logger.info(f"[*] Searching RFDBNet for PSNR pretrained model weights.")
 
 # Save the generator model based on MSE pre training to speed up the training time
-if os.path.exists(f"./weight/RRFDBNet_PSNR_{args.upscale_factor}x.pth"):
-    print("[*] Found RRFDBNet for PSNR pretrained model weights. Skip pre-train.")
-    netG.load_state_dict(torch.load(f"./weight/RRFDBNet_PSNR_{args.upscale_factor}x.pth", map_location=device))
+if os.path.exists(f"./weight/RFDBNet_PSNR_{args.upscale_factor}x.pth"):
+    print("[*] Found RFDBNet for PSNR pretrained model weights. Skip pre-train.")
+    netG.load_state_dict(torch.load(f"./weight/RFDBNet_PSNR_{args.upscale_factor}x.pth", map_location=device))
 else:
     # Writer train RRFDBNet PSNR model log.
     if args.start_epoch == 0:
-        with open(f"RRFDBNet_PSNR_{args.upscale_factor}x_Loss.csv", "w+") as f:
+        with open(f"RFDBNet_PSNR_{args.upscale_factor}x_Loss.csv", "w+") as f:
             writer = csv.writer(f)
             writer.writerow(["Epoch", "L1 Loss"])
-    print("[!] Not found pretrained weights. Start training RRFDBNet for PSNR model.")
+    print("[!] Not found pretrained weights. Start training RFDBNet for PSNR model.")
     for epoch in range(args.start_epoch, psnr_epochs):
         progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
         avg_loss = 0.
@@ -169,27 +169,24 @@ else:
 
             # The image is saved every 5000 iterations.
             if (total_iter + 1) % 5000 == 0:
-                vutils.save_image(lr,
-                                  os.path.join(output_lr_dir, f"RRFDBNet_PSNR_{total_iter + 1}.bmp"), normalize=True)
-                vutils.save_image(hr,
-                                  os.path.join(output_hr_dir, f"RRFDBNet_PSNR_{total_iter + 1}.bmp"), normalize=True)
-                vutils.save_image(sr,
-                                  os.path.join(output_sr_dir, f"RRFDBNet_PSNR_{total_iter + 1}.bmp"), normalize=True)
+                vutils.save_image(lr, os.path.join(output_lr_dir, f"RFDBNet_PSNR_{total_iter + 1}.bmp"), normalize=True)
+                vutils.save_image(hr, os.path.join(output_hr_dir, f"RFDBNet_PSNR_{total_iter + 1}.bmp"), normalize=True)
+                vutils.save_image(sr, os.path.join(output_sr_dir, f"RFDBNet_PSNR_{total_iter + 1}.bmp"), normalize=True)
 
         # The model is saved every 1 epoch.
         torch.save({"epoch": epoch + 1,
                     "optimizer": optimizer.state_dict(),
                     "state_dict": netG.state_dict()
-                    }, f"./weight/RRFDBNet_PSNR_{args.upscale_factor}x_checkpoint.pth")
+                    }, f"./weight/RFDBNet_PSNR_{args.upscale_factor}x_checkpoint.pth")
 
         # Writer training log
-        with open(f"RRFDBNet_PSNR_{args.upscale_factor}x_Loss.csv", "a+") as f:
+        with open(f"RFDBNet_PSNR_{args.upscale_factor}x_Loss.csv", "a+") as f:
             writer = csv.writer(f)
             writer.writerow([epoch + 1, avg_loss / len(dataloader)])
 
-    torch.save(netG.state_dict(), f"./weight/RRFDBNet_PSNR_{args.upscale_factor}x.pth")
-    print(f"[*] Training RRFDBNet for PSNR model done! Saving RRFDBNet for PSNR model weight to "
-          f"`./weight/RRFDBNet_PSNR_{args.upscale_factor}x.pth`.")
+    torch.save(netG.state_dict(), f"./weight/RFDBNet_PSNR_{args.upscale_factor}x.pth")
+    print(f"[*] Training RRDBNet for PSNR model done! Saving RRFDBNet for PSNR model weight to "
+          f"`./weight/RFDBNet_PSNR_{args.upscale_factor}x.pth`.")
 
 # After training the RRFDBNet for PSNR model, set the initial iteration to 0.
 args.start_epoch = 0
@@ -240,7 +237,7 @@ for epoch in range(args.start_epoch, epochs):
         # According to the feature map, the root mean square error is regarded as the content loss.
         perceptual_loss = vgg_criterion(sr, hr)
         # Train with fake high resolution image.
-        hr_output = netD(hr)  # No train real fake image.
+        hr_output = netD(hr.detach())  # No train real fake image.
         sr_output = netD(sr)  # Train fake image.
         errG_hr = adversarial_criterion(hr_output - torch.mean(sr_output), fake_label)
         errG_sr = adversarial_criterion(sr_output - torch.mean(hr_output), real_label)
@@ -250,7 +247,7 @@ for epoch in range(args.start_epoch, epochs):
         errG = perceptual_loss + 0.005 * adversarial_loss + 0.1 * l1_loss
         errG.backward()
         optimizerG.step()
-        D_G_z = sr_output.mean().item()
+        D_G_z1 = sr_output.mean().item()
 
         ##############################################
         # (2) Update D network: maximize - E(lr)[1- log(D(hr, sr))] - E(sr)[log(D(sr, hr))]
@@ -266,6 +263,7 @@ for epoch in range(args.start_epoch, epochs):
         errD = (errD_sr + errD_hr) / 2
         errD.backward()
         D_x = hr_output.mean().item()
+        D_G_z2 = sr_output.mean().item()
         optimizerD.step()
 
         # Dynamic adjustment of learning rate
@@ -277,7 +275,7 @@ for epoch in range(args.start_epoch, epochs):
 
         progress_bar.set_description(f"[{epoch + 1}/{epochs}][{i + 1}/{len(dataloader)}] "
                                      f"Loss_D: {errD:.6f} Loss_G: {errG.item():.6f} "
-                                     f"D(HR): {D_x:.6f} D(G(LR)): {D_G_z:.6f}")
+                                     f"D(HR): {D_x:.6f} D(G(LR)): {D_G_z1:.6f}/{D_G_z2:.6f}")
 
         # record iter.
         total_iter = len(dataloader) * epoch + i

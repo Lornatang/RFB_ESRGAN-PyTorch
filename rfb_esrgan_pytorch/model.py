@@ -15,54 +15,46 @@ import math
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch import Tensor
 
 
 class Discriminator(nn.Module):
-    r"""Discriminator similar to VGG structure"""
+    r"""The main architecture of the discriminator. Similar to VGG structure."""
 
     def __init__(self):
         super(Discriminator, self).__init__()
-
         self.features = nn.Sequential(
-            # Conv0
-            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Conv2d(64, 64, kernel_size=4, stride=2, padding=1, bias=False),
+
+            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            # Conv1
-            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.BatchNorm2d(128),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Conv2d(128, 128, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(128),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            # Conv2
-            nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.BatchNorm2d(256),
+            nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(128),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Conv2d(256, 256, kernel_size=4, stride=2, padding=1, bias=False),
+
+            nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(256),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            # Conv3
-            nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.BatchNorm2d(512),
+            nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(256),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Conv2d(512, 512, kernel_size=4, stride=2, padding=1, bias=False),
+
+            nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(512),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            # Conv4
-            nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(512),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Conv2d(512, 512, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(512),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True)
         )
 
         self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
@@ -78,40 +70,43 @@ class Discriminator(nn.Module):
         out = self.avgpool(out)
         out = torch.flatten(out, 1)
         out = self.classifier(out)
-        return out
+
+        return F.sigmoid(out)
 
 
 class Generator(nn.Module):
-    def __init__(self, upscale_factor):
+    def __init__(self, upscale_factor, num_rrdb_blocks=16, num_rrfdb_blocks=8):
         r""" This is an esrgan model defined by the author himself.
 
         Args:
             upscale_factor (int): Image magnification factor. (Default: 4).
+            num_rrdb_blocks (int): How many RRDB structures make up Trunk-a? (Default: 16).
+            num_rrfdb_blocks (int): How many RRDB structures make up Trunk-RFB? (Default: 8).
         """
         super(Generator, self).__init__()
-        upsample_block_num = int(math.log(upscale_factor, 2))
+        num_upsample_block = int(math.log(upscale_factor, 2))
 
         # First layer
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
 
         # 16 ResidualInResidualDenseBlock layer
-        rrdb_layers = []
-        for _ in range(16):
-            rrdb_layers += [ResidualInResidualDenseBlock(in_channels=64, growth_channels=32, scale_ratio=0.2)]
-        self.residual_residual_dense_blocks = nn.Sequential(*rrdb_layers)
+        residual_residual_dense_blocks = []
+        for _ in range(num_rrdb_blocks):
+            residual_residual_dense_blocks += [ResidualInResidualDenseBlock(64, 32, 0.2)]
+        self.residual_residual_dense_blocks = nn.Sequential(*residual_residual_dense_blocks)
 
         # 8 ResidualInResidualDenseBlock layer
-        rrfdb_layers = []
-        for _ in range(8):
-            rrfdb_layers += [ResidualInResidualFieldsDenseBlock(in_channels=64, growth_channels=32, scale_ratio=0.2)]
-        self.residual_residual_fields_dense_blocks = nn.Sequential(*rrfdb_layers)
+        residual_residual_fields_dense_blocks = []
+        for _ in range(num_rrfdb_blocks):
+            residual_residual_fields_dense_blocks += [ResidualInResidualFieldsDenseBlock(64, 32, 0.2)]
+        self.residual_residual_fields_dense_blocks = nn.Sequential(*residual_residual_fields_dense_blocks)
 
         # Second conv layer post residual field blocks
         self.conv2 = Inception(64, 64, non_linearity=False)
 
         # Upsampling layers
         upsampling = []
-        for _ in range(upsample_block_num):
+        for _ in range(num_upsample_block):
             upsampling += [
                 nn.Upsample(scale_factor=2, mode="nearest"),
                 Inception(64, 64),
@@ -122,24 +117,29 @@ class Generator(nn.Module):
             ]
         self.upsampling = nn.Sequential(*upsampling)
 
-        # Final output layer
+        # Next layer after upper sampling.
         self.conv3 = nn.Sequential(
             nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=False),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Conv2d(64, 3, kernel_size=3, stride=1, padding=1, bias=False),
         )
+
+        # Final output layer
+        self.conv4 = nn.Conv2d(64, 3, kernel_size=3, stride=1, padding=1, bias=False)
 
     def forward(self, input: Tensor) -> Tensor:
         out1 = self.conv1(input)
-
+        # Trunk-a
         out2 = self.residual_residual_dense_blocks(out1)
+        # Trunk-RFB
         out2 = self.residual_residual_fields_dense_blocks(out2)
 
-        out = torch.add(out1, out2)
+        out = out1 + out2
 
         out = self.conv2(out)
         out = self.upsampling(out)
         out = self.conv3(out)
+        out = self.conv4(out)
+
         return out
 
 
@@ -201,7 +201,7 @@ class Inception(nn.Module):
         out = torch.cat((branch1, branch2, branch3, branch4), 1)
         out = self.conv1x1(out)
 
-        out = shortcut * self.scale_ratio + out
+        out = out.mul(self.scale_ratio) + shortcut
         if self.lrelu is not None:
             out = self.lrelu(out)
 
@@ -228,13 +228,16 @@ class ReceptiveFieldsDenseBlock(nn.Module):
         self.conv4 = Inception(in_channels + 3 * growth_channels, growth_channels)
         self.conv5 = Inception(in_channels + 4 * growth_channels, growth_channels, non_linearity=False)
 
+        self.scale_ratio = scale_ratio
+
     def forward(self, input: Tensor) -> Tensor:
         conv1 = self.conv1(input)
         conv2 = self.conv2(torch.cat((input, conv1), 1))
         conv3 = self.conv3(torch.cat((input, conv1, conv2), 1))
         conv4 = self.conv4(torch.cat((input, conv1, conv2, conv3), 1))
         conv5 = self.conv5(torch.cat((input, conv1, conv2, conv3, conv4), 1))
-        return conv5 * self.scale_ratio + input
+
+        return conv5.mul(self.scale_ratio) + input
 
 
 class ResidualInResidualFieldsDenseBlock(nn.Module):
@@ -249,16 +252,18 @@ class ResidualInResidualFieldsDenseBlock(nn.Module):
             scale_ratio (float): Residual channel scaling column. (Default: 0.2)
         """
         super(ResidualInResidualFieldsDenseBlock, self).__init__()
-        self.RFDB1 = ReceptiveFieldsDenseBlock(in_channels, growth_channels)
-        self.RFDB2 = ReceptiveFieldsDenseBlock(in_channels, growth_channels)
-        self.RFDB3 = ReceptiveFieldsDenseBlock(in_channels, growth_channels)
+        self.RFDB1 = ReceptiveFieldsDenseBlock(in_channels, growth_channels, 0.2)
+        self.RFDB2 = ReceptiveFieldsDenseBlock(in_channels, growth_channels, 0.2)
+        self.RFDB3 = ReceptiveFieldsDenseBlock(in_channels, growth_channels, 0.2)
+
         self.scale_ratio = scale_ratio
 
     def forward(self, input: Tensor) -> Tensor:
         out = self.RFDB1(input)
         out = self.RFDB2(out)
         out = self.RFDB3(out)
-        return out * self.scale_ratio + input
+
+        return out.mul(self.scale_ratio) + input
 
 
 class ResidualDenseBlock(nn.Module):
@@ -285,9 +290,7 @@ class ResidualDenseBlock(nn.Module):
         self.conv4 = nn.Sequential(
             nn.Conv2d(in_channels + 3 * growth_channels, growth_channels, 3, 1, 1, bias=False),
             nn.LeakyReLU(negative_slope=0.2, inplace=True))
-        self.conv5 = nn.Sequential(
-            nn.Conv2d(in_channels + 4 * growth_channels, in_channels, 3, 1, 1, bias=False),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True))
+        self.conv5 = nn.Conv2d(in_channels + 4 * growth_channels, in_channels, 3, 1, 1, bias=False)
 
         self.scale_ratio = scale_ratio
 
@@ -297,7 +300,8 @@ class ResidualDenseBlock(nn.Module):
         conv3 = self.conv3(torch.cat((input, conv1, conv2), 1))
         conv4 = self.conv4(torch.cat((input, conv1, conv2, conv3), 1))
         conv5 = self.conv5(torch.cat((input, conv1, conv2, conv3, conv4), 1))
-        return conv5 * self.scale_ratio + input
+
+        return conv5.mul(self.scale_ratio) + input
 
 
 class ResidualInResidualDenseBlock(nn.Module):
@@ -312,13 +316,15 @@ class ResidualInResidualDenseBlock(nn.Module):
             scale_ratio (float): Residual channel scaling column. (Default: 0.2)
         """
         super(ResidualInResidualDenseBlock, self).__init__()
-        self.RBD1 = ResidualDenseBlock(in_channels, growth_channels)
-        self.RBD2 = ResidualDenseBlock(in_channels, growth_channels)
-        self.RBD3 = ResidualDenseBlock(in_channels, growth_channels)
+        self.RDB1 = ResidualDenseBlock(in_channels, growth_channels, 0.2)
+        self.RDB2 = ResidualDenseBlock(in_channels, growth_channels, 0.2)
+        self.RDB3 = ResidualDenseBlock(in_channels, growth_channels, 0.2)
+
         self.scale_ratio = scale_ratio
 
     def forward(self, input: Tensor) -> Tensor:
-        out = self.RBD1(input)
-        out = self.RBD2(out)
-        out = self.RBD3(out)
-        return out * self.scale_ratio + input
+        out = self.RDB1(input)
+        out = self.RDB2(out)
+        out = self.RDB3(out)
+
+        return out.mul(self.scale_ratio) + input

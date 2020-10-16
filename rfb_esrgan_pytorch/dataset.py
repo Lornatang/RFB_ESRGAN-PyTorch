@@ -14,9 +14,11 @@
 import os
 
 import torch.utils.data.dataset
+import torchvision.transforms as transforms
 from PIL import Image
 
 from .utils import img2tensor
+from .utils import tensor2img
 
 
 def check_image_file(filename):
@@ -48,7 +50,10 @@ class DatasetFromFolder(torch.utils.data.dataset.Dataset):
         super(DatasetFromFolder, self).__init__()
         self.input_filenames = [os.path.join(input_dir, x) for x in os.listdir(input_dir) if check_image_file(x)]
         self.target_filenames = [os.path.join(target_dir, x) for x in os.listdir(target_dir) if check_image_file(x)]
-        self.transforms = img2tensor()
+        self.transforms = transforms.Compose([
+            img2tensor(),
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        ])
 
     def __getitem__(self, index):
         r""" Get image source file.

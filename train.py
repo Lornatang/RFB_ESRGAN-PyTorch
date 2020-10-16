@@ -24,13 +24,13 @@ import torchvision.utils as vutils
 from tqdm import tqdm
 import torch.optim as optim
 
-from rfb_esrgan_pytorch import DatasetFromFolder
-from rfb_esrgan_pytorch import Discriminator
-from rfb_esrgan_pytorch import VGG34Loss
-from rfb_esrgan_pytorch import Generator
-from rfb_esrgan_pytorch import init_torch_seeds
-from rfb_esrgan_pytorch import load_checkpoint
-from rfb_esrgan_pytorch import select_device
+from rfb_RFB_esrgan_pytorch import DatasetFromFolder
+from rfb_RFB_esrgan_pytorch import Discriminator
+from rfb_RFB_esrgan_pytorch import VGG34Loss
+from rfb_RFB_esrgan_pytorch import Generator
+from rfb_RFB_esrgan_pytorch import init_torch_seeds
+from rfb_RFB_esrgan_pytorch import load_checkpoint
+from rfb_RFB_esrgan_pytorch import select_device
 
 logger = logging.getLogger(__name__)
 
@@ -112,9 +112,9 @@ scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
 
 # Loading PSNR pre training model
 if args.resume_PSNR:
-    args.start_epoch = load_checkpoint(netG, optimizer, f"./weight/RRDBNet_PSNR_{args.upscale_factor}x_checkpoint.pth")
+    args.start_epoch = load_checkpoint(netG, optimizer, f"./weight/RRFDBNet_PSNR_{args.upscale_factor}x_checkpoint.pth")
 
-# We use vgg54 as our feature extraction method by default.
+# We use vgg34 as our feature extraction method by default.
 vgg_criterion = VGG34Loss().to(device)
 # Loss = perceptual_loss + 0.005 * adversarial_loss + 0.1 * l1_loss
 content_criterion = nn.L1Loss().to(device)
@@ -125,21 +125,21 @@ netG.train()
 netD.train()
 
 # Pre-train generator using raw MSE loss
-logger.info(f"[*] Start training RRDBNet for PSNR model based on L1 loss.")
+logger.info(f"[*] Start training RRFDBNet for PSNR model based on L1 loss.")
 logger.info(f"[*] Generator pre-training for {psnr_epochs} epochs.")
-logger.info(f"[*] Searching RRDBNet for PSNR pretrained model weights.")
+logger.info(f"[*] Searching RRFDBNet for PSNR pretrained model weights.")
 
 # Save the generator model based on MSE pre training to speed up the training time
-if os.path.exists(f"./weight/RRDBNet_PSNR_{args.upscale_factor}x.pth"):
-    print("[*] Found RRDBNet for PSNR pretrained model weights. Skip pre-train.")
-    netG.load_state_dict(torch.load(f"./weight/RRDBNet_PSNR_{args.upscale_factor}x.pth", map_location=device))
+if os.path.exists(f"./weight/RRFDBNet_PSNR_{args.upscale_factor}x.pth"):
+    print("[*] Found RRFDBNet for PSNR pretrained model weights. Skip pre-train.")
+    netG.load_state_dict(torch.load(f"./weight/RRFDBNet_PSNR_{args.upscale_factor}x.pth", map_location=device))
 else:
-    # Writer train RRDBNet PSNR model log.
+    # Writer train RRFDBNet PSNR model log.
     if args.start_epoch == 0:
-        with open(f"RRDBNet_PSNR_{args.upscale_factor}x_Loss.csv", "w+") as f:
+        with open(f"RRFDBNet_PSNR_{args.upscale_factor}x_Loss.csv", "w+") as f:
             writer = csv.writer(f)
             writer.writerow(["Epoch", "L1 Loss"])
-    print("[!] Not found pretrained weights. Start training RRDBNet for PSNR model.")
+    print("[!] Not found pretrained weights. Start training RRFDBNet for PSNR model.")
     for epoch in range(args.start_epoch, psnr_epochs):
         progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
         avg_loss = 0.
@@ -169,29 +169,32 @@ else:
 
             # The image is saved every 5000 iterations.
             if (total_iter + 1) % 5000 == 0:
-                vutils.save_image(lr, os.path.join(output_lr_dir, f"RRDBNet_PSNR_{total_iter + 1}.bmp"), normalize=True)
-                vutils.save_image(hr, os.path.join(output_hr_dir, f"RRDBNet_PSNR_{total_iter + 1}.bmp"), normalize=True)
-                vutils.save_image(sr, os.path.join(output_sr_dir, f"RRDBNet_PSNR_{total_iter + 1}.bmp"), normalize=True)
+                vutils.save_image(lr,
+                                  os.path.join(output_lr_dir, f"RRFDBNet_PSNR_{total_iter + 1}.bmp"), normalize=True)
+                vutils.save_image(hr,
+                                  os.path.join(output_hr_dir, f"RRFDBNet_PSNR_{total_iter + 1}.bmp"), normalize=True)
+                vutils.save_image(sr,
+                                  os.path.join(output_sr_dir, f"RRFDBNet_PSNR_{total_iter + 1}.bmp"), normalize=True)
 
         # The model is saved every 1 epoch.
         torch.save({"epoch": epoch + 1,
                     "optimizer": optimizer.state_dict(),
                     "state_dict": netG.state_dict()
-                    }, f"./weight/RRDBNet_PSNR_{args.upscale_factor}x_checkpoint.pth")
+                    }, f"./weight/RRFDBNet_PSNR_{args.upscale_factor}x_checkpoint.pth")
 
         # Writer training log
-        with open(f"RRDBNet_PSNR_{args.upscale_factor}x_Loss.csv", "a+") as f:
+        with open(f"RRFDBNet_PSNR_{args.upscale_factor}x_Loss.csv", "a+") as f:
             writer = csv.writer(f)
             writer.writerow([epoch + 1, avg_loss / len(dataloader)])
 
-    torch.save(netG.state_dict(), f"./weight/RRDBNet_PSNR_{args.upscale_factor}x.pth")
-    print(f"[*] Training RRDBNet for PSNR model done! Saving RRDBNet for PSNR model weight to "
-          f"`./weight/RRDBNet_PSNR_{args.upscale_factor}x.pth`.")
+    torch.save(netG.state_dict(), f"./weight/RRFDBNet_PSNR_{args.upscale_factor}x.pth")
+    print(f"[*] Training RRFDBNet for PSNR model done! Saving RRFDBNet for PSNR model weight to "
+          f"`./weight/RRFDBNet_PSNR_{args.upscale_factor}x.pth`.")
 
-# After training the RRDBNet for PSNR model, set the initial iteration to 0.
+# After training the RRFDBNet for PSNR model, set the initial iteration to 0.
 args.start_epoch = 0
 
-# Alternating training ESRGAN network.
+# Alternating training RFB-ESRGAN network.
 epochs = int(args.iters // len(dataloader))
 base_epoch = int(epochs // 8)
 epoch_indices = [base_epoch, base_epoch * 2, base_epoch * 4, base_epoch * 6]
@@ -200,17 +203,17 @@ optimizerG = optim.Adam(netG.parameters(), lr=args.lr, betas=(0.9, 0.99))
 schedulerD = optim.lr_scheduler.MultiStepLR(optimizerD, milestones=epoch_indices, gamma=0.5)
 schedulerG = optim.lr_scheduler.MultiStepLR(optimizerG, milestones=epoch_indices, gamma=0.5)
 
-# Loading ESRGAN checkpoint
+# Loading RFB-ESRGAN checkpoint
 if args.resume:
     args.start_epoch = load_checkpoint(netD, optimizerD, f"./weight/netD_{args.upscale_factor}x_checkpoint.pth")
     args.start_epoch = load_checkpoint(netG, optimizerG, f"./weight/netG_{args.upscale_factor}x_checkpoint.pth")
 
-# Train ESRGAN model.
-logger.info(f"[*] Staring training ESRGAN model!")
+# Train RFB-ESRGAN model.
+logger.info(f"[*] Staring training RFB-ESRGAN model!")
 logger.info(f"[*] Training for {epochs} epochs.")
-# Writer train ESRGAN model log.
+# Writer train RFB-ESRGAN model log.
 if args.start_epoch == 0:
-    with open(f"ESRGAN_{args.upscale_factor}x_Loss.csv", "w+") as f:
+    with open(f"RFB_ESRGAN_{args.upscale_factor}x_Loss.csv", "w+") as f:
         writer = csv.writer(f)
         writer.writerow(["Epoch", "D Loss", "G Loss"])
 
@@ -281,9 +284,9 @@ for epoch in range(args.start_epoch, epochs):
 
         # The image is saved every 5000 iterations.
         if (total_iter + 1) % 5000 == 0:
-            vutils.save_image(lr, os.path.join(output_lr_dir, f"ESRGAN_{total_iter + 1}.bmp"), normalize=True)
-            vutils.save_image(hr, os.path.join(output_hr_dir, f"ESRGAN_{total_iter + 1}.bmp"), normalize=True)
-            vutils.save_image(sr, os.path.join(output_sr_dir, f"ESRGAN_{total_iter + 1}.bmp"), normalize=True)
+            vutils.save_image(lr, os.path.join(output_lr_dir, f"RFB_ESRGAN_{total_iter + 1}.bmp"), normalize=True)
+            vutils.save_image(hr, os.path.join(output_hr_dir, f"RFB_ESRGAN_{total_iter + 1}.bmp"), normalize=True)
+            vutils.save_image(sr, os.path.join(output_sr_dir, f"RFB_ESRGAN_{total_iter + 1}.bmp"), normalize=True)
 
     # The model is saved every 1 epoch.
     torch.save({"epoch": epoch + 1,
@@ -296,10 +299,10 @@ for epoch in range(args.start_epoch, epochs):
                 }, f"./weight/netG_{args.upscale_factor}x_checkpoint.pth")
 
     # Writer training log
-    with open(f"ESRGAN_{args.upscale_factor}x_Loss.csv", "a+") as f:
+    with open(f"RFB_ESRGAN_{args.upscale_factor}x_Loss.csv", "a+") as f:
         writer = csv.writer(f)
         writer.writerow([epoch + 1, d_avg_loss / len(dataloader), g_avg_loss / len(dataloader)])
 
-torch.save(netG.state_dict(), f"./weight/ESRGAN_{args.upscale_factor}x.pth")
-logger.info(f"[*] Training ESRGAN model done! Saving ESRGAN model weight "
-            f"to `./weight/ESRGAN_{args.upscale_factor}x.pth`.")
+torch.save(netG.state_dict(), f"./weight/RFB_ESRGAN_{args.upscale_factor}x.pth")
+logger.info(f"[*] Training RFB-ESRGAN model done! Saving RFB-ESRGAN model weight "
+            f"to `./weight/RFB_ESRGAN_{args.upscale_factor}x.pth`.")

@@ -74,7 +74,10 @@ class VGG34Loss(nn.Module):
         """
         super(VGG34Loss, self).__init__()
         model = vgg19(pretrained=True)
-        self.feature_extractor = nn.Sequential(*list(model.features.children())[:feature_layer]).eval()
+        self.features = nn.Sequential(*list(model.features.children())[:feature_layer]).eval()
+        # Freeze parameters. Don't train.
+        for name, param in self.features.named_parameters():
+            param.requires_grad = False
 
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
         vgg_loss = F.mse_loss(self.feature_extractor(input), self.feature_extractor(target))

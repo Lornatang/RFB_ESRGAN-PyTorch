@@ -18,7 +18,7 @@ from torch import Tensor
 from torchvision.models import vgg19
 
 
-class VGG34Loss(nn.Module):
+class VGGLoss(nn.Module):
     r""" Where VGG_conv34 represents the feature map of 34th layer in pretrained VGG19 model.
 
     "Perceptual Extreme Super Resolution Network with Receptive Field Block" <https://arxiv.org/pdf/2005.12597.pdf>`_
@@ -72,7 +72,7 @@ class VGG34Loss(nn.Module):
               (33): ReLU(inplace=True)
             )
         """
-        super(VGG34Loss, self).__init__()
+        super(VGGLoss, self).__init__()
         model = vgg19(pretrained=True)
         self.features = nn.Sequential(*list(model.features.children())[:feature_layer]).eval()
         # Freeze parameters. Don't train.

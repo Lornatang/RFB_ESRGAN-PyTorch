@@ -15,7 +15,6 @@ import math
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torch import Tensor
 
 
@@ -29,10 +28,10 @@ class Discriminator(nn.Module):
         """
         super(Discriminator, self).__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),  # input is 3 x 216 x 216
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),  # state size. (64) x 108 x 108
             nn.BatchNorm2d(64),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
@@ -40,7 +39,7 @@ class Discriminator(nn.Module):
             nn.BatchNorm2d(128),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1),  # state size. 128 x 64 x 64
             nn.BatchNorm2d(128),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
@@ -48,7 +47,7 @@ class Discriminator(nn.Module):
             nn.BatchNorm2d(256),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1),  # state size. 256 x 32 x 32
             nn.BatchNorm2d(256),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
@@ -56,15 +55,15 @@ class Discriminator(nn.Module):
             nn.BatchNorm2d(512),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1),  # state size. 512 x 16 x 16
             nn.BatchNorm2d(512),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
-        self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
+        self.avgpool = nn.AdaptiveAvgPool2d((16, 16))
         self.classifier = nn.Sequential(
-            nn.Linear(512 * 7 * 7, 100),
+            nn.Linear(512 * 16 * 16, 1024),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Linear(100, 1)
+            nn.Linear(1024, 1)
         )
 
         if init_weights:
@@ -85,7 +84,7 @@ class Discriminator(nn.Module):
         out = torch.flatten(out, 1)
         out = self.classifier(out)
 
-        return F.sigmoid(out)
+        return torch.sigmoid(out)
 
 
 class Generator(nn.Module):
@@ -94,12 +93,12 @@ class Generator(nn.Module):
 
         Args:
             upscale_factor (int): Image magnification factor. (Default: 4).
-            num_rrdb_blocks (int): How many RRDB structures make up Trunk-a? (Default: 16).
+            num_rrdb_blocks (int): How many RRDB structures make up Trunk-A? (Default: 16).
             num_rrfdb_blocks (int): How many RRDB structures make up Trunk-RFB? (Default: 8).
             init_weights (optional, bool): Whether to initialize the initial neural network. (Default: ``True``).
         """
         super(Generator, self).__init__()
-        num_upsample_block = int(math.log(upscale_factor, 2))
+        num_upsample_block = int(math.log(upscale_factor, 4))
 
         # First layer
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
@@ -108,27 +107,27 @@ class Generator(nn.Module):
         residual_residual_dense_blocks = []
         for _ in range(num_rrdb_blocks):
             residual_residual_dense_blocks += [ResidualInResidualDenseBlock(64, 32, 0.2)]
-        self.residual_residual_dense_blocks = nn.Sequential(*residual_residual_dense_blocks)
+        self.Trunk_A = nn.Sequential(*residual_residual_dense_blocks)
 
         # 8 ResidualInResidualDenseBlock layer
         residual_residual_fields_dense_blocks = []
         for _ in range(num_rrfdb_blocks):
-            residual_residual_fields_dense_blocks += [ResidualInResidualFieldsDenseBlock(64, 32, 0.2)]
-        self.residual_residual_fields_dense_blocks = nn.Sequential(*residual_residual_fields_dense_blocks)
+            residual_residual_fields_dense_blocks += [ResidualofReceptiveFieldDenseBlock(64, 32, 0.2)]
+        self.Trunk_RFB = nn.Sequential(*residual_residual_fields_dense_blocks)
 
         # Second conv layer post residual field blocks
-        self.conv2 = Inception(64, 64, non_linearity=False)
+        self.RFB = ReceptiveFieldBlock(64, 64, non_linearity=False)
 
         # Upsampling layers
         upsampling = []
         for _ in range(num_upsample_block):
             upsampling += [
                 nn.Upsample(scale_factor=2, mode="nearest"),
-                Inception(64, 64),
+                ReceptiveFieldBlock(64, 64),
                 nn.Conv2d(64, 256, kernel_size=3, stride=1, padding=1, bias=False),
                 nn.LeakyReLU(negative_slope=0.2, inplace=True),
                 nn.PixelShuffle(upscale_factor=2),
-                Inception(64, 64)
+                ReceptiveFieldBlock(64, 64)
             ]
         self.upsampling = nn.Sequential(*upsampling)
 
@@ -155,14 +154,12 @@ class Generator(nn.Module):
 
     def forward(self, input: Tensor) -> Tensor:
         out1 = self.conv1(input)
-        # Trunk-a
-        out2 = self.residual_residual_dense_blocks(out1)
-        # Trunk-RFB
-        out2 = self.residual_residual_fields_dense_blocks(out2)
+        out2 = self.Trunk_A(out1)
+        out2 = self.Trunk_RFB(out2)
 
         out = out1 + out2
 
-        out = self.conv2(out)
+        out = self.RFB(out)
         out = self.upsampling(out)
         out = self.conv3(out)
         out = self.conv4(out)
@@ -170,13 +167,13 @@ class Generator(nn.Module):
         return out
 
 
-class Inception(nn.Module):
+class ReceptiveFieldBlock(nn.Module):
     r"""This structure is similar to the main building blocks in the GoogLeNet model.
     `"Going Deeper with Convolutions" <http://arxiv.org/abs/1409.4842>`_.
     """
 
     def __init__(self, in_channels=64, out_channels=32, scale_ratio=0.2, non_linearity=True):
-        super(Inception, self).__init__()
+        super(ReceptiveFieldBlock, self).__init__()
         channels = in_channels // 4
         # shortcut layer
         self.shortcut = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=False)
@@ -184,7 +181,7 @@ class Inception(nn.Module):
         self.branch1 = nn.Sequential(
             nn.Conv2d(in_channels, channels, kernel_size=1, stride=1, padding=0, bias=False),
             nn.ReLU(inplace=True),
-            nn.Conv2d(channels, channels, kernel_size=1, stride=1, padding=1, bias=False)
+            nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, dilation=1, bias=False)
         )
 
         self.branch2 = nn.Sequential(
@@ -206,7 +203,7 @@ class Inception(nn.Module):
         self.branch4 = nn.Sequential(
             nn.Conv2d(in_channels, channels // 2, kernel_size=1, stride=1, padding=0, bias=False),
             nn.ReLU(inplace=True),
-            nn.Conv2d(channels // 4, (channels // 4) * 3, kernel_size=(1, 3), stride=1, padding=(0, 1), bias=False),
+            nn.Conv2d(channels // 2, (channels // 4) * 3, kernel_size=(1, 3), stride=1, padding=(0, 1), bias=False),
             nn.ReLU(inplace=True),
             nn.Conv2d((channels // 4) * 3, channels, kernel_size=(1, 3), stride=1, padding=(0, 1), bias=False),
             nn.ReLU(inplace=True),
@@ -235,7 +232,7 @@ class Inception(nn.Module):
         return out
 
 
-class ReceptiveFieldsDenseBlock(nn.Module):
+class ReceptiveFieldDenseBlock(nn.Module):
     r""" Inspired by the multi-scale kernels and the structure of Receptive Fields (RFs) in human visual systems,
         RFB-SSD proposed Receptive Fields Block (RFB) for object detection
     """
@@ -248,26 +245,26 @@ class ReceptiveFieldsDenseBlock(nn.Module):
             growth_channels (int): how many filters to add each layer (`k` in paper). (Default: 32).
             scale_ratio (float): Residual channel scaling column. (Default: 0.2)
         """
-        super(ReceptiveFieldsDenseBlock, self).__init__()
-        self.conv1 = Inception(in_channels, growth_channels)
-        self.conv2 = Inception(in_channels + 1 * growth_channels, growth_channels)
-        self.conv3 = Inception(in_channels + 2 * growth_channels, growth_channels)
-        self.conv4 = Inception(in_channels + 3 * growth_channels, growth_channels)
-        self.conv5 = Inception(in_channels + 4 * growth_channels, growth_channels, non_linearity=False)
+        super(ReceptiveFieldDenseBlock, self).__init__()
+        self.RFB1 = ReceptiveFieldBlock(in_channels, growth_channels)
+        self.RFB2 = ReceptiveFieldBlock(in_channels + 1 * growth_channels, growth_channels)
+        self.RFB3 = ReceptiveFieldBlock(in_channels + 2 * growth_channels, growth_channels)
+        self.RFB4 = ReceptiveFieldBlock(in_channels + 3 * growth_channels, growth_channels)
+        self.RFB5 = ReceptiveFieldBlock(in_channels + 4 * growth_channels, in_channels, non_linearity=False)
 
         self.scale_ratio = scale_ratio
 
     def forward(self, input: Tensor) -> Tensor:
-        conv1 = self.conv1(input)
-        conv2 = self.conv2(torch.cat((input, conv1), 1))
-        conv3 = self.conv3(torch.cat((input, conv1, conv2), 1))
-        conv4 = self.conv4(torch.cat((input, conv1, conv2, conv3), 1))
-        conv5 = self.conv5(torch.cat((input, conv1, conv2, conv3, conv4), 1))
+        rfb1 = self.RFB1(input)
+        rfb2 = self.RFB2(torch.cat((input, rfb1), 1))
+        rfb3 = self.RFB3(torch.cat((input, rfb1, rfb2), 1))
+        rfb4 = self.RFB4(torch.cat((input, rfb1, rfb2, rfb3), 1))
+        rfb5 = self.RFB5(torch.cat((input, rfb1, rfb2, rfb3, rfb4), 1))
 
-        return conv5.mul(self.scale_ratio) + input
+        return rfb5.mul(self.scale_ratio) + input
 
 
-class ResidualInResidualFieldsDenseBlock(nn.Module):
+class ResidualofReceptiveFieldDenseBlock(nn.Module):
     r"""The residual block structure of traditional RFB-ESRGAN is defined"""
 
     def __init__(self, in_channels=64, growth_channels=32, scale_ratio=0.2):
@@ -278,10 +275,10 @@ class ResidualInResidualFieldsDenseBlock(nn.Module):
             growth_channels (int): how many filters to add each layer (`k` in paper). (Default: 32).
             scale_ratio (float): Residual channel scaling column. (Default: 0.2)
         """
-        super(ResidualInResidualFieldsDenseBlock, self).__init__()
-        self.RFDB1 = ReceptiveFieldsDenseBlock(in_channels, growth_channels, 0.2)
-        self.RFDB2 = ReceptiveFieldsDenseBlock(in_channels, growth_channels, 0.2)
-        self.RFDB3 = ReceptiveFieldsDenseBlock(in_channels, growth_channels, 0.2)
+        super(ResidualofReceptiveFieldDenseBlock, self).__init__()
+        self.RFDB1 = ReceptiveFieldDenseBlock(in_channels, growth_channels, scale_ratio)
+        self.RFDB2 = ReceptiveFieldDenseBlock(in_channels, growth_channels, scale_ratio)
+        self.RFDB3 = ReceptiveFieldDenseBlock(in_channels, growth_channels, scale_ratio)
 
         self.scale_ratio = scale_ratio
 

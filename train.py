@@ -27,7 +27,7 @@ from tqdm import tqdm
 from rfb_esrgan_pytorch import DatasetFromFolder
 from rfb_esrgan_pytorch import Discriminator
 from rfb_esrgan_pytorch import Generator
-from rfb_esrgan_pytorch import VGG34Loss
+from rfb_esrgan_pytorch import VGGLoss
 from rfb_esrgan_pytorch import init_torch_seeds
 from rfb_esrgan_pytorch import load_checkpoint
 from rfb_esrgan_pytorch import select_device
@@ -105,20 +105,17 @@ netD = Discriminator().to(device)
 psnr_epochs = int(args.psnr_iters // len(dataloader))
 epoch_indices = int(psnr_epochs // 4)
 optimizer = optim.Adam(netG.parameters(), lr=args.psnr_lr, betas=(0.9, 0.99))
-scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
-                                                           T_0=epoch_indices,
-                                                           T_mult=1,
-                                                           eta_min=1e-7)
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=epoch_indices, gamma=0.5)
 
 # Loading PSNR pre training model
 if args.resume_PSNR:
     args.start_epoch = load_checkpoint(netG, optimizer, f"./weight/RFDBNet_PSNR_{args.upscale_factor}x_checkpoint.pth")
 
 # We use vgg34 as our feature extraction method by default.
-vgg_criterion = VGG34Loss().to(device)
-# Loss = perceptual_loss + 0.005 * adversarial_loss + 0.1 * l1_loss
+vgg_criterion = VGGLoss().to(device)
+# Loss = 10 * mse_loss + vgg_loss + 0.005 * l1_loss
 content_criterion = nn.L1Loss().to(device)
-adversarial_criterion = nn.BCEWithLogitsLoss().to(device)
+adversarial_criterion = nn.BCELoss().to(device)
 
 # Set the all model to training mode
 netG.train()

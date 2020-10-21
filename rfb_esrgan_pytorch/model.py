@@ -69,6 +69,20 @@ class Discriminator(nn.Module):
             nn.Linear(1024, 1)
         )
 
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight)
+                m.weight.data *= 0.1
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight)
+                m.weight.data *= 0.1
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
     def forward(self, input: Tensor) -> Tensor:
         out = self.features(input)
         out = self.avgpool(out)
@@ -188,7 +202,22 @@ class ReceptiveFieldBlock(nn.Module):
 
         self.conv1x1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=False)
         self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True) if non_linearity else None
+
         self.scale_ratio = scale_ratio
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
+                m.weight.data *= 0.1
+                if m.bias is not None:
+                    m.bias.data.fill_(0)
+            elif isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
+                m.weight.data *= 0.1
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
 
     def forward(self, input: Tensor) -> Tensor:
         shortcut = self.shortcut(input)
@@ -293,6 +322,20 @@ class ResidualDenseBlock(nn.Module):
         self.conv5 = nn.Conv2d(in_channels + 4 * growth_channels, in_channels, 3, 1, 1, bias=False)
 
         self.scale_ratio = scale_ratio
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="leaky_relu")
+                m.weight.data *= 0.1
+                if m.bias is not None:
+                    m.bias.data.fill_(0)
+            elif isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="leaky_relu")
+                m.weight.data *= 0.1
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
 
     def forward(self, input: Tensor) -> Tensor:
         conv1 = self.conv1(input)

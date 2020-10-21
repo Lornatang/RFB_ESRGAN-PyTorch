@@ -162,7 +162,7 @@ class ReceptiveFieldBlock(nn.Module):
     `"Going Deeper with Convolutions" <http://arxiv.org/abs/1409.4842>`_.
     """
 
-    def __init__(self, in_channels=64, out_channels=32, scale_ratio=0.2, non_linearity=True):
+    def __init__(self, in_channels, out_channels, scale_ratio=0.2, non_linearity=True):
         super(ReceptiveFieldBlock, self).__init__()
         channels = in_channels // 4
         # shortcut layer
@@ -242,7 +242,7 @@ class ReceptiveFieldDenseBlock(nn.Module):
         RFB-SSD proposed Receptive Fields Block (RFB) for object detection
     """
 
-    def __init__(self, in_channels=64, growth_channels=32, scale_ratio=0.2):
+    def __init__(self, in_channels, growth_channels, scale_ratio):
         """
 
         Args:
@@ -298,13 +298,13 @@ class ResidualOfReceptiveFieldDenseBlock(nn.Module):
 class ResidualDenseBlock(nn.Module):
     r"""The residual block structure of traditional SRGAN and Dense model is defined"""
 
-    def __init__(self, in_channels=64, growth_channels=32, scale_ratio=0.2):
+    def __init__(self, in_channels, growth_channels, scale_ratio):
         """
 
         Args:
-            in_channels (int): Number of channels in the input image. (Default: 64).
-            growth_channels (int): how many filters to add each layer (`k` in paper). (Default: 32).
-            scale_ratio (float): Residual channel scaling column. (Default: 0.2)
+            in_channels (int): Number of channels in the input image.
+            growth_channels (int): how many filters to add each layer (`k` in paper).
+            scale_ratio (float): Residual channel scaling column.
         """
         super(ResidualDenseBlock, self).__init__()
         self.conv1 = nn.Sequential(
@@ -350,13 +350,13 @@ class ResidualDenseBlock(nn.Module):
 class ResidualInResidualDenseBlock(nn.Module):
     r"""The residual block structure of traditional ESRGAN and Dense model is defined"""
 
-    def __init__(self, in_channels=64, growth_channels=32, scale_ratio=0.2):
+    def __init__(self, in_channels, growth_channels, scale_ratio):
         """
 
         Args:
-            in_channels (int): Number of channels in the input image. (Default: 64).
-            growth_channels (int): how many filters to add each layer (`k` in paper). (Default: 32).
-            scale_ratio (float): Residual channel scaling column. (Default: 0.2)
+            in_channels (int): Number of channels in the input image.
+            growth_channels (int): how many filters to add each layer (`k` in paper).
+            scale_ratio (float): Residual channel scaling column.
         """
         super(ResidualInResidualDenseBlock, self).__init__()
         self.RDB1 = ResidualDenseBlock(in_channels, growth_channels, scale_ratio)

@@ -17,66 +17,57 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
+__all__ = [
+    "Discriminator", "Generator", "ReceptiveFieldBlock", "ReceptiveFieldDenseBlock",
+    "ResidualOfReceptiveFieldDenseBlock", "ResidualDenseBlock", "ResidualInResidualDenseBlock"
+]
+
 
 class Discriminator(nn.Module):
     r"""The main architecture of the discriminator. Similar to VGG structure."""
 
-    def __init__(self, init_weights=True):
-        """
-        Args:
-            init_weights (optional, bool): Whether to initialize the initial neural network. (Default: ``True``).
-        """
+    def __init__(self):
         super(Discriminator, self).__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),  # input is 3 x 216 x 216
+            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False),  # input is 3 x 216 x 216
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),  # state size. (64) x 108 x 108
+            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=False),  # state size. (64) x 108 x 108
             nn.BatchNorm2d(64),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(128),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1),  # state size. 128 x 54 x 54
+            nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1, bias=False),  # state size. 128 x 54 x 54
             nn.BatchNorm2d(128),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(256),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1),  # state size. 256 x 27 x 27
+            nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1, bias=False),  # state size. 256 x 27 x 27
             nn.BatchNorm2d(256),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(512),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1),  # state size. 512 x 14 x 14
+            nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1, bias=False),  # state size. 512 x 14 x 14
             nn.BatchNorm2d(512),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True)
         )
-        self.avgpool = nn.AdaptiveAvgPool2d((14, 14))
+
+        self.avgpool = nn.AdaptiveAvgPool2d(14)
+
         self.classifier = nn.Sequential(
             nn.Linear(512 * 14 * 14, 1024),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.Linear(1024, 1)
         )
-
-        if init_weights:
-            self._initialize_weights()
-
-    def _initialize_weights(self):
-        for m in self.modules():
-            classname = m.__class__.__name__
-            if classname.find("Conv") != -1:
-                torch.nn.init.normal_(m.weight, 0.0, 0.02)
-            elif classname.find("BatchNorm") != -1:
-                torch.nn.init.normal_(m.weight, 1.0, 0.02)
-                torch.nn.init.zeros_(m.bias)
 
     def forward(self, input: Tensor) -> Tensor:
         out = self.features(input)
@@ -88,14 +79,13 @@ class Discriminator(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, upscale_factor, num_rrdb_blocks=16, num_rrfdb_blocks=8, init_weights=True):
+    def __init__(self, upscale_factor, num_rrdb_blocks=16, num_rrfdb_blocks=8):
         r""" This is an esrgan model defined by the author himself.
 
         Args:
             upscale_factor (int): Image magnification factor. (Default: 4).
             num_rrdb_blocks (int): How many RRDB structures make up Trunk-A? (Default: 16).
             num_rrfdb_blocks (int): How many RRDB structures make up Trunk-RFB? (Default: 8).
-            init_weights (optional, bool): Whether to initialize the initial neural network. (Default: ``True``).
         """
         super(Generator, self).__init__()
         num_upsample_block = int(math.log(upscale_factor, 4))
@@ -112,7 +102,7 @@ class Generator(nn.Module):
         # 8 ResidualInResidualDenseBlock layer
         residual_residual_fields_dense_blocks = []
         for _ in range(num_rrfdb_blocks):
-            residual_residual_fields_dense_blocks += [ResidualofReceptiveFieldDenseBlock(64, 32, 0.2)]
+            residual_residual_fields_dense_blocks += [ResidualOfReceptiveFieldDenseBlock(64, 32, 0.2)]
         self.Trunk_RFB = nn.Sequential(*residual_residual_fields_dense_blocks)
 
         # Second conv layer post residual field blocks
@@ -140,25 +130,11 @@ class Generator(nn.Module):
         # Final output layer
         self.conv4 = nn.Conv2d(64, 3, kernel_size=3, stride=1, padding=1, bias=False)
 
-        if init_weights:
-            self._initialize_weights()
-
-    def _initialize_weights(self):
-        for m in self.modules():
-            classname = m.__class__.__name__
-            if classname.find("Conv") != -1:
-                torch.nn.init.normal_(m.weight, 0.0, 0.02)
-            elif classname.find("BatchNorm") != -1:
-                torch.nn.init.normal_(m.weight, 1.0, 0.02)
-                torch.nn.init.zeros_(m.bias)
-
     def forward(self, input: Tensor) -> Tensor:
         out1 = self.conv1(input)
-        out2 = self.Trunk_A(out1)
-        out2 = self.Trunk_RFB(out2)
-
-        out = out1 + out2
-
+        out = self.Trunk_A(out1)
+        out2 = self.Trunk_RFB(out)
+        out = torch.add(out1, out2)
         out = self.RFB(out)
         out = self.upsampling(out)
         out = self.conv3(out)
@@ -207,7 +183,7 @@ class ReceptiveFieldBlock(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d((channels // 4) * 3, channels, kernel_size=(1, 3), stride=1, padding=(0, 1), bias=False),
             nn.ReLU(inplace=True),
-            nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=5, dilation=5, bias=False),
+            nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=5, dilation=5, bias=False)
         )
 
         self.conv1x1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=False)
@@ -264,7 +240,7 @@ class ReceptiveFieldDenseBlock(nn.Module):
         return rfb5.mul(self.scale_ratio) + input
 
 
-class ResidualofReceptiveFieldDenseBlock(nn.Module):
+class ResidualOfReceptiveFieldDenseBlock(nn.Module):
     r"""The residual block structure of traditional RFB-ESRGAN is defined"""
 
     def __init__(self, in_channels=64, growth_channels=32, scale_ratio=0.2):
@@ -275,7 +251,7 @@ class ResidualofReceptiveFieldDenseBlock(nn.Module):
             growth_channels (int): how many filters to add each layer (`k` in paper). (Default: 32).
             scale_ratio (float): Residual channel scaling column. (Default: 0.2)
         """
-        super(ResidualofReceptiveFieldDenseBlock, self).__init__()
+        super(ResidualOfReceptiveFieldDenseBlock, self).__init__()
         self.RFDB1 = ReceptiveFieldDenseBlock(in_channels, growth_channels, scale_ratio)
         self.RFDB2 = ReceptiveFieldDenseBlock(in_channels, growth_channels, scale_ratio)
         self.RFDB3 = ReceptiveFieldDenseBlock(in_channels, growth_channels, scale_ratio)
@@ -340,9 +316,9 @@ class ResidualInResidualDenseBlock(nn.Module):
             scale_ratio (float): Residual channel scaling column. (Default: 0.2)
         """
         super(ResidualInResidualDenseBlock, self).__init__()
-        self.RDB1 = ResidualDenseBlock(in_channels, growth_channels, 0.2)
-        self.RDB2 = ResidualDenseBlock(in_channels, growth_channels, 0.2)
-        self.RDB3 = ResidualDenseBlock(in_channels, growth_channels, 0.2)
+        self.RDB1 = ResidualDenseBlock(in_channels, growth_channels, scale_ratio)
+        self.RDB2 = ResidualDenseBlock(in_channels, growth_channels, scale_ratio)
+        self.RDB3 = ResidualDenseBlock(in_channels, growth_channels, scale_ratio)
 
         self.scale_ratio = scale_ratio
 

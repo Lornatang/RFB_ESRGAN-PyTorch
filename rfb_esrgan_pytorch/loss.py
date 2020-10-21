@@ -14,12 +14,14 @@
 """It mainly implements all the losses used in the model."""
 import torch.nn as nn
 import torch.nn.functional as F
+
 from torch import Tensor
 from torchvision.models import vgg19
 
 
 class VGGLoss(nn.Module):
     r""" Where VGG_conv34 represents the feature map of 34th layer in pretrained VGG19 model.
+    For VGG2.2 use 8th layer.
 
     "Perceptual Extreme Super Resolution Network with Receptive Field Block" <https://arxiv.org/pdf/2005.12597.pdf>`_
 

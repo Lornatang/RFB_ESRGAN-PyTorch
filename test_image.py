@@ -12,12 +12,10 @@
 # limitations under the License.
 # ==============================================================================
 import argparse
-import os
 import time
 
 import cv2
 import lpips
-import torch.utils.data.distributed
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from PIL import Image
@@ -38,7 +36,7 @@ parser.add_argument("--lr", type=str,
                     help="Test low resolution image name.")
 parser.add_argument("--hr", type=str,
                     help="Raw high resolution image name.")
-parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4],
+parser.add_argument("--upscale-factor", type=int, default=4, choices=[4],
                     help="Low to high resolution scaling factor. (default:4).")
 parser.add_argument("--model-path", default="./weight/ESRGAN_4x.pth", type=str, metavar="PATH",
                     help="Path to latest checkpoint for model. (default: ``./weight/ESRGAN_4x.pth``).")
@@ -46,11 +44,6 @@ parser.add_argument("--device", default="cpu",
                     help="device id i.e. `0` or `0,1` or `cpu`. (default: ``CUDA:0``).")
 
 args = parser.parse_args()
-
-try:
-    os.makedirs("benchmark")
-except OSError:
-    pass
 
 # Selection of appropriate treatment equipment
 device = select_device(args.device, batch_size=1)
@@ -63,10 +56,7 @@ model.load_state_dict(torch.load(args.model_path, map_location=device))
 model.eval()
 
 # Just convert the data to Tensor format
-pre_process = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-])
+pre_process = transforms.ToTensor()
 
 # Load image
 lr = Image.open(args.lr)
@@ -81,9 +71,9 @@ with torch.no_grad():
     sr = model(lr)
 end_time = time.time()
 
-vutils.save_image(lr, "lr.png", normalize=True)
-vutils.save_image(sr, "sr.png", normalize=True)
-vutils.save_image(hr, "hr.png", normalize=True)
+vutils.save_image(lr, "lr.png", normalize=False)
+vutils.save_image(sr, "sr.png", normalize=False)
+vutils.save_image(hr, "hr.png", normalize=False)
 
 # Evaluate performance
 src_img = cv2.imread("sr.png")
@@ -112,7 +102,7 @@ print(f"MSE: {mse_value:.2f}\n"
       f"NIQE: {niqe_value:.2f}\n"
       f"SAM: {sam_value:.4f}\n"
       f"VIF: {vif_value:.4f}\n"
-      f"LPIPS: {lpips_value.item():.4f}"
-      f"Use time: {(end_time - start_time) * 1000:.2f}ms/{(end_time - start_time)}s.")
+      f"LPIPS: {lpips_value.item():.4f}\n"
+      f"Use time: {(end_time - start_time) * 1000:.2f}ms/{(end_time - start_time):.4f}s.")
 print("============================== End ==============================")
 print("\n")

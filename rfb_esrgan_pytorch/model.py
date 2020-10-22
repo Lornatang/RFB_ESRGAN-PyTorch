@@ -61,45 +61,37 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(negative_slope=0.2, inplace=True)
         )
 
-        self.avgpool = nn.AdaptiveAvgPool2d(14)
+        self.avgpool = nn.AdaptiveAvgPool2d((14, 14))
 
-        self.classifier = nn.Sequential(
+        self.fc = nn.Sequential(
             nn.Linear(512 * 14 * 14, 1024),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Linear(1024, 1)
+            nn.Linear(1024, 1),
+            nn.Sigmoid()
         )
-
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight)
-                m.weight.data *= 0.1
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight)
-                m.weight.data *= 0.1
-                nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
 
     def forward(self, input: Tensor) -> Tensor:
         out = self.features(input)
         out = self.avgpool(out)
         out = torch.flatten(out, 1)
-        out = self.classifier(out)
+        out = self.fc(out)
 
-        return torch.sigmoid(out)
+        return out
 
 
 class Generator(nn.Module):
-    def __init__(self, upscale_factor, num_rrdb_blocks=16, num_rrfdb_blocks=8):
+    def __init__(self, upscale_factor, num_rrdb_blocks=4, num_rrfdb_blocks=2):
         r""" This is an esrgan model defined by the author himself.
 
         Args:
             upscale_factor (int): Image magnification factor. (Default: 4).
-            num_rrdb_blocks (int): How many RRDB structures make up Trunk-A? (Default: 16).
-            num_rrfdb_blocks (int): How many RRDB structures make up Trunk-RFB? (Default: 8).
+            num_rrdb_blocks (int): How many RRDB structures make up Trunk-A? (Default: 4).
+            num_rrfdb_blocks (int): How many RRDB structures make up Trunk-RFB? (Default: 2).
+
+        Notes:
+            Use `num_rrdb_blocks` is 4 for RTX 1080Ti.
+            Use `num_rrdb_blocks` is 8 for TITAN RTX.
+            Use `num_rrdb_blocks` is 16 for Tesla A100.
         """
         super(Generator, self).__init__()
         num_upsample_block = int(math.log(upscale_factor, 4))
@@ -138,11 +130,14 @@ class Generator(nn.Module):
         # Next layer after upper sampling.
         self.conv3 = nn.Sequential(
             nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True)
         )
 
         # Final output layer
-        self.conv4 = nn.Conv2d(64, 3, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv4 = nn.Sequential(
+            nn.Conv2d(64, 3, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.Tanh()
+        )
 
     def forward(self, input: Tensor) -> Tensor:
         out1 = self.conv1(input)
@@ -207,17 +202,18 @@ class ReceptiveFieldBlock(nn.Module):
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
+                nn.init.kaiming_normal_(m.weight)
                 m.weight.data *= 0.1
                 if m.bias is not None:
-                    m.bias.data.fill_(0)
+                    m.bias.data.zero_()
             elif isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
+                nn.init.kaiming_normal_(m.weight)
                 m.weight.data *= 0.1
-                nn.init.constant_(m.bias, 0)
+                if m.bias is not None:
+                    m.bias.data.zero_()
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+                nn.init.constant_(m.bias.data, 0.0)
 
     def forward(self, input: Tensor) -> Tensor:
         shortcut = self.shortcut(input)
@@ -251,11 +247,12 @@ class ReceptiveFieldDenseBlock(nn.Module):
             scale_ratio (float): Residual channel scaling column. (Default: 0.2)
         """
         super(ReceptiveFieldDenseBlock, self).__init__()
-        self.RFB1 = ReceptiveFieldBlock(in_channels, growth_channels)
-        self.RFB2 = ReceptiveFieldBlock(in_channels + 1 * growth_channels, growth_channels)
-        self.RFB3 = ReceptiveFieldBlock(in_channels + 2 * growth_channels, growth_channels)
-        self.RFB4 = ReceptiveFieldBlock(in_channels + 3 * growth_channels, growth_channels)
-        self.RFB5 = ReceptiveFieldBlock(in_channels + 4 * growth_channels, in_channels, non_linearity=False)
+        self.RFB1 = ReceptiveFieldBlock(in_channels, growth_channels, scale_ratio)
+        self.RFB2 = ReceptiveFieldBlock(in_channels + 1 * growth_channels, growth_channels, scale_ratio)
+        self.RFB3 = ReceptiveFieldBlock(in_channels + 2 * growth_channels, growth_channels, scale_ratio)
+        self.RFB4 = ReceptiveFieldBlock(in_channels + 3 * growth_channels, growth_channels, scale_ratio)
+        self.RFB5 = ReceptiveFieldBlock(in_channels + 4 * growth_channels, in_channels, scale_ratio,
+                                        non_linearity=False)
 
         self.scale_ratio = scale_ratio
 
@@ -325,17 +322,18 @@ class ResidualDenseBlock(nn.Module):
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="leaky_relu")
+                nn.init.kaiming_normal_(m.weight)
                 m.weight.data *= 0.1
                 if m.bias is not None:
-                    m.bias.data.fill_(0)
+                    m.bias.data.zero_()
             elif isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="leaky_relu")
+                nn.init.kaiming_normal_(m.weight)
                 m.weight.data *= 0.1
-                nn.init.constant_(m.bias, 0)
+                if m.bias is not None:
+                    m.bias.data.zero_()
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+                nn.init.constant_(m.bias.data, 0.0)
 
     def forward(self, input: Tensor) -> Tensor:
         conv1 = self.conv1(input)

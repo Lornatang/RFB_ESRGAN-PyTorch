@@ -16,6 +16,7 @@ import os
 
 import cv2
 import numpy as np
+import torch
 import torchvision.transforms as transforms
 from PIL import Image
 from tqdm import tqdm
@@ -26,7 +27,7 @@ from rfb_esrgan_pytorch import select_device
 parser = argparse.ArgumentParser(description="RFB_ESRGAN algorithm is applied to video files.")
 parser.add_argument("--file", type=str, required=True,
                     help="Test low resolution video name.")
-parser.add_argument("--upscale-factor", type=int, default=4, choices=[2, 4],
+parser.add_argument("--upscale-factor", type=int, default=4, choices=[4],
                     help="Low to high resolution scaling factor. (default:4).")
 parser.add_argument("--model-path", default="./weight/RFB_ESRGAN_4x.pth", type=str, metavar="PATH",
                     help="Path to latest checkpoint for model. (default: ``./weight/RFB_ESRGAN_4x.pth``).")

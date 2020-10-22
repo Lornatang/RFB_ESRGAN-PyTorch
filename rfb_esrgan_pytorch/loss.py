@@ -30,11 +30,11 @@ class VGGLoss(nn.Module):
     as SRGAN in the following.
     """
 
-    def __init__(self, feature_layer: int = 34) -> None:
+    def __init__(self, feature_layer: int = 35) -> None:
         """ Constructing characteristic loss function of VGG network. For VGG34 layer.
 
         Args:
-            feature_layer (int): How many layers in VGG19. (Default:34).
+            feature_layer (int): How many layers in VGG19. (Default:35).
 
         Notes:
             features(
@@ -72,6 +72,7 @@ class VGGLoss(nn.Module):
               (31): ReLU(inplace=True)
               (32): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
               (33): ReLU(inplace=True)
+              (34): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
             )
         """
         super(VGGLoss, self).__init__()

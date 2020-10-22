@@ -16,6 +16,7 @@ import time
 
 import cv2
 import lpips
+import torch
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from PIL import Image
@@ -32,14 +33,14 @@ from rfb_esrgan_pytorch import cal_niqe
 from rfb_esrgan_pytorch import select_device
 
 parser = argparse.ArgumentParser(description="Perceptual Extreme Super Resolution Network with Receptive Field Block.")
-parser.add_argument("--lr", type=str,
+parser.add_argument("--lr", type=str, required=True,
                     help="Test low resolution image name.")
-parser.add_argument("--hr", type=str,
+parser.add_argument("--hr", type=str, required=True,
                     help="Raw high resolution image name.")
 parser.add_argument("--upscale-factor", type=int, default=4, choices=[4],
                     help="Low to high resolution scaling factor. (default:4).")
-parser.add_argument("--model-path", default="./weight/ESRGAN_4x.pth", type=str, metavar="PATH",
-                    help="Path to latest checkpoint for model. (default: ``./weight/ESRGAN_4x.pth``).")
+parser.add_argument("--model-path", default="./weight/RFB_ESRGAN_4x.pth", type=str, metavar="PATH",
+                    help="Path to latest checkpoint for model. (default: ``./weight/RFB_ESRGAN_4x.pth``).")
 parser.add_argument("--device", default="cpu",
                     help="device id i.e. `0` or `0,1` or `cpu`. (default: ``CUDA:0``).")
 
@@ -56,7 +57,10 @@ model.load_state_dict(torch.load(args.model_path, map_location=device))
 model.eval()
 
 # Just convert the data to Tensor format
-pre_process = transforms.ToTensor()
+pre_process = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+])
 
 # Load image
 lr = Image.open(args.lr)

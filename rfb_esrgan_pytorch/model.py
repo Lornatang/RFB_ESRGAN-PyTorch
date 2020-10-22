@@ -80,18 +80,19 @@ class Discriminator(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, upscale_factor, num_rrdb_blocks=4, num_rrfdb_blocks=2):
+    def __init__(self, upscale_factor, num_rrdb_blocks=2, num_rrfdb_blocks=2):
         r""" This is an esrgan model defined by the author himself.
 
         Args:
             upscale_factor (int): Image magnification factor. (Default: 4).
-            num_rrdb_blocks (int): How many RRDB structures make up Trunk-A? (Default: 4).
+            num_rrdb_blocks (int): How many RRDB structures make up Trunk-A? (Default: 2).
             num_rrfdb_blocks (int): How many RRDB structures make up Trunk-RFB? (Default: 2).
 
         Notes:
-            Use `num_rrdb_blocks` is 4 for RTX 1080Ti.
-            Use `num_rrdb_blocks` is 8 for TITAN RTX.
-            Use `num_rrdb_blocks` is 16 for Tesla A100.
+            Use `num_rrdb_blocks` is 2  and `num_rrfdb_blocks` is 2 for RTX 2080.
+            Use `num_rrdb_blocks` is 4  and `num_rrfdb_blocks` is 2 for RTX 2080Ti.
+            Use `num_rrdb_blocks` is 8  and `num_rrfdb_blocks` is 4 for TITAN RTX.
+            Use `num_rrdb_blocks` is 16 and `num_rrfdb_blocks` is 8 for Tesla A100.
         """
         super(Generator, self).__init__()
         num_upsample_block = int(math.log(upscale_factor, 4))

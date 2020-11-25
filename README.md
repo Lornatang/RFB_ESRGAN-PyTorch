@@ -49,8 +49,8 @@ and if it's 0, it's not real.
 #### Clone and install requirements
 
 ```bash
-$ git clone https://github.com/Lornatang/ESRGAN-PyTorch.git
-$ cd ESRGAN-PyTorch/
+$ git clone https://github.com/Lornatang/RFB_ESRGAN-PyTorch.git
+$ cd RFB_ESRGAN-PyTorch/
 $ pip3 install -r requirements.txt
 ```
 

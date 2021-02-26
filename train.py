@@ -14,8 +14,8 @@
 import argparse
 import logging
 
-import esrgan_pytorch.models as models
-from esrgan_pytorch.utils.common import create_folder
+import rfb_esrgan_pytorch.models as models
+from rfb_esrgan_pytorch.utils.common import create_folder
 from trainer import Trainer
 
 model_names = sorted(name for name in models.__dict__
@@ -26,14 +26,15 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.DEBUG)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks.")
+    parser = argparse.ArgumentParser(description="Perceptual Extreme Super Resolution Network with "
+                                                 "Receptive Field Block.")
     parser.add_argument("data", metavar="DIR",
                         help="path to dataset")
-    parser.add_argument("-a", "--arch", metavar="ARCH", default="esrgan16",
+    parser.add_argument("-a", "--arch", metavar="ARCH", default="rfb_esrgan",
                         choices=model_names,
                         help="model architecture: " +
                              " | ".join(model_names) +
-                             " (default: esrgan16)")
+                             " (default: rfb_esrgan)")
     parser.add_argument("-j", "--workers", default=8, type=int, metavar="N",
                         help="Number of data loading workers. (default:8)")
     parser.add_argument("--start-psnr-iter", default=0, type=int, metavar="N",

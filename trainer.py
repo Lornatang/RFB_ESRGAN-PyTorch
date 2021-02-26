@@ -24,16 +24,16 @@ import torchvision.utils as vutils
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-import esrgan_pytorch.models as models
-from esrgan_pytorch.dataset import CustomTestDataset
-from esrgan_pytorch.dataset import CustomTrainDataset
-from esrgan_pytorch.loss import VGGLoss
-from esrgan_pytorch.models.discriminator import discriminator
-from esrgan_pytorch.utils.common import init_torch_seeds
-from esrgan_pytorch.utils.common import save_checkpoint
-from esrgan_pytorch.utils.device import select_device
-from esrgan_pytorch.utils.estimate import test_gan
-from esrgan_pytorch.utils.estimate import test_psnr
+import rfb_esrgan_pytorch.models as models
+from rfb_esrgan_pytorch.dataset import CustomTestDataset
+from rfb_esrgan_pytorch.dataset import CustomTrainDataset
+from rfb_esrgan_pytorch.loss import VGGLoss
+from rfb_esrgan_pytorch.models.discriminator import discriminator
+from rfb_esrgan_pytorch.utils.common import init_torch_seeds
+from rfb_esrgan_pytorch.utils.common import save_checkpoint
+from rfb_esrgan_pytorch.utils.device import select_device
+from rfb_esrgan_pytorch.utils.estimate import test_gan
+from rfb_esrgan_pytorch.utils.estimate import test_psnr
 
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__")
@@ -50,7 +50,7 @@ def train_psnr(epoch: int,
                pixel_criterion: nn.L1Loss,
                psnr_criterion: nn.MSELoss,
                optimizer: torch.optim.Adam,
-               scheduler: torch.optim.lr_scheduler.CosineAnnealingWarmRestarts,
+               scheduler: torch.optim.lr_scheduler.StepLR,
                scaler: amp.GradScaler,
                writer: SummaryWriter,
                device: torch.device):
@@ -92,9 +92,9 @@ def train_psnr(epoch: int,
 
         # The image is saved every 1000 epoch.
         if iters % 1000 == 0:
-            vutils.save_image(hr, os.path.join("runs", "hr", f"RRDBNet_{iters}.bmp"))
+            vutils.save_image(hr, os.path.join("runs", "hr", f"RFBNet_{iters}.bmp"))
             sr = model(lr)
-            vutils.save_image(sr.detach(), os.path.join("runs", "sr", f"RRDBNet_{iters}.bmp"))
+            vutils.save_image(sr.detach(), os.path.join("runs", "sr", f"RFBNet_{iters}.bmp"))
 
         if iters == int(total_iters):  # If the iteration is reached, exit.
             break
@@ -113,8 +113,8 @@ def train_gan(epoch: int,
               adversarial_criterion: nn.BCEWithLogitsLoss,
               discriminator_optimizer: torch.optim.Adam,
               generator_optimizer: torch.optim.Adam,
-              discriminator_scheduler: torch.optim.lr_scheduler,
-              generator_scheduler: torch.optim.lr_scheduler,
+              discriminator_scheduler: torch.optim.lr_scheduler.MultiStepLR,
+              generator_scheduler: torch.optim.lr_scheduler.MultiStepLR,
               scaler: amp.GradScaler,
               writer: SummaryWriter,
               device: torch.device):
@@ -281,10 +281,9 @@ class Trainer(object):
         self.psnr_epochs = math.ceil(args.psnr_iters / len(self.train_dataloader))
         psnr_epoch_indices = math.floor(self.psnr_epochs / 4)
         self.psnr_optimizer = torch.optim.Adam(self.generator.parameters(), lr=args.psnr_lr, betas=(0.9, 0.999))
-        self.psnr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(self.psnr_optimizer,
-                                                                                   T_0=psnr_epoch_indices,
-                                                                                   T_mult=1,
-                                                                                   eta_min=1e-7)
+        self.psnr_scheduler = torch.optim.lr_scheduler.StepLR(self.psnr_optimizer,
+                                                              step_size=psnr_epoch_indices,
+                                                              gamma=0.5)
 
         logger.info(f"Pre-training model training parameters:\n"
                     f"\tIters is {args.psnr_iters}\n"
@@ -294,8 +293,8 @@ class Trainer(object):
                     f"\tBetas (0.9, 0.999)")
 
         # Create a SummaryWriter at the beginning of training.
-        self.psnr_writer = SummaryWriter(f"runs/RRDBNet_{int(time.time())}_logs")
-        self.gan_writer = SummaryWriter(f"runs/ESRGAN_{int(time.time())}_logs")
+        self.psnr_writer = SummaryWriter(f"runs/RFBNet_{int(time.time())}_logs")
+        self.gan_writer = SummaryWriter(f"runs/RFB_ESRGAN_{int(time.time())}_logs")
 
         # Creates a GradScaler once at the beginning of training.
         self.scaler = amp.GradScaler()
@@ -322,10 +321,10 @@ class Trainer(object):
                     f"\tBetas is (0.9, 0.999)\n"
                     f"\tScheduler is MultiStepLR")
 
+        # Loss = 10 * pixel loss + perceptual loss + 0.005 * adversarial loss
+        self.pixel_criterion = nn.L1Loss().to(self.device)
         # We use VGG5.4 as our feature extraction method by default.
         self.perceptual_criterion = VGGLoss().to(self.device)
-        # Loss = perceptual loss + 0.005 * adversarial loss + 0.01 * pixel loss
-        self.pixel_criterion = nn.L1Loss().to(self.device)
         self.adversarial_criterion = nn.BCEWithLogitsLoss().to(self.device)
         # LPIPS Evaluating.
         self.lpips_criterion = lpips.LPIPS(net="vgg", verbose=False).to(self.device)
@@ -387,13 +386,13 @@ class Trainer(object):
                      "best_psnr": best_psnr,
                      "optimizer": self.psnr_optimizer.state_dict()
                      }, is_best,
-                    os.path.join("weights", f"RRDBNet_iter_{iters}.pth"),
-                    os.path.join("weights", f"RRDBNet.pth"))
+                    os.path.join("weights", f"RFBNet_iter_{iters}.pth"),
+                    os.path.join("weights", f"RFBNet.pth"))
         else:
             logger.info("The weight of pre training model is found.")
 
         # Load best generator model weight.
-        self.generator.load_state_dict(torch.load(os.path.join("weights", f"RRDBNet.pth"), self.device))
+        self.generator.load_state_dict(torch.load(os.path.join("weights", f"RFBNet.pth"), self.device))
 
         # Loading SRGAN training model.
         if args.netG != "":
@@ -445,7 +444,7 @@ class Trainer(object):
                      "best_lpips": best_lpips,
                      "optimizer": self.generator_optimizer.state_dict()
                      }, is_best,
-                    os.path.join("weights", f"ESRGAN_iter_{iters}.pth"),
-                    os.path.join("weights", f"ESRGAN.pth"))
+                    os.path.join("weights", f"RFB_ESRGAN_iter_{iters}.pth"),
+                    os.path.join("weights", f"RFB_ESRGAN.pth"))
         else:
             logger.info("The weight of GAN training model is found.")

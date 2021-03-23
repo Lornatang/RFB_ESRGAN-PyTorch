@@ -16,7 +16,7 @@ import torch.nn as nn
 from torch.hub import load_state_dict_from_url
 
 model_urls = {
-    "rfb_esrgan": "https://github.com/Lornatang/RFB_ESRGAN-PyTorch/releases/download/0.1.0/RFB_ESRGAN_DF2K-e31a1b2e.pth"
+    "rfb": "https://github.com/Lornatang/RFB_ESRGAN-PyTorch/releases/download/0.1.0/RFB_ESRGAN_DF2K-e31a1b2e.pth"
 }
 
 
@@ -67,8 +67,8 @@ class Generator(nn.Module):
             nn.Tanh()
         )
 
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
-        out1 = self.conv1(input)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out1 = self.conv1(x)
         out = self.Trunk_a(out1)
         out2 = self.Trunk_RFB(out)
         out = torch.add(out1, out2)
@@ -143,13 +143,13 @@ class ReceptiveFieldBlock(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias.data, 0.0)
 
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
-        shortcut = self.shortcut(input)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        shortcut = self.shortcut(x)
 
-        branch1 = self.branch1(input)
-        branch2 = self.branch2(input)
-        branch3 = self.branch3(input)
-        branch4 = self.branch4(input)
+        branch1 = self.branch1(x)
+        branch2 = self.branch2(x)
+        branch3 = self.branch3(x)
+        branch4 = self.branch4(x)
 
         out = torch.cat((branch1, branch2, branch3, branch4), dim=1)
         out = self.conv1x1(out)
@@ -166,7 +166,7 @@ class ReceptiveFieldDenseBlock(nn.Module):
         RFB-SSD proposed Receptive Fields Block (RFB) for object detection
     """
 
-    def __init__(self, in_channels, growth_channels, scale_ratio):
+    def __init__(self, in_channels=64, growth_channels=32, scale_ratio=0.2):
         """
 
         Args:
@@ -184,14 +184,14 @@ class ReceptiveFieldDenseBlock(nn.Module):
 
         self.scale_ratio = scale_ratio
 
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
-        rfb1 = self.RFB1(input)
-        rfb2 = self.RFB2(torch.cat((input, rfb1), dim=1))
-        rfb3 = self.RFB3(torch.cat((input, rfb1, rfb2), dim=1))
-        rfb4 = self.RFB4(torch.cat((input, rfb1, rfb2, rfb3), dim=1))
-        rfb5 = self.RFB5(torch.cat((input, rfb1, rfb2, rfb3, rfb4), dim=1))
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        rfb1 = self.RFB1(x)
+        rfb2 = self.RFB2(torch.cat((x, rfb1), dim=1))
+        rfb3 = self.RFB3(torch.cat((x, rfb1, rfb2), dim=1))
+        rfb4 = self.RFB4(torch.cat((x, rfb1, rfb2, rfb3), dim=1))
+        rfb5 = self.RFB5(torch.cat((x, rfb1, rfb2, rfb3, rfb4), dim=1))
 
-        return rfb5.mul(self.scale_ratio) + input
+        return rfb5.mul(self.scale_ratio) + x
 
 
 class ResidualOfReceptiveFieldDenseBlock(nn.Module):
@@ -212,24 +212,24 @@ class ResidualOfReceptiveFieldDenseBlock(nn.Module):
 
         self.scale_ratio = scale_ratio
 
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
-        out = self.RFDB1(input)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = self.RFDB1(x)
         out = self.RFDB2(out)
         out = self.RFDB3(out)
 
-        return out.mul(self.scale_ratio) + input
+        return out.mul(self.scale_ratio) + x
 
 
 class ResidualDenseBlock(nn.Module):
     r"""The residual block structure of traditional SRGAN and Dense model is defined"""
 
-    def __init__(self, in_channels, growth_channels, scale_ratio):
+    def __init__(self, in_channels=64, growth_channels=32, scale_ratio=0.2):
         """
 
         Args:
-            in_channels (int): Number of channels in the input image.
-            growth_channels (int): how many filters to add each layer (`k` in paper).
-            scale_ratio (float): Residual channel scaling column.
+            in_channels (int): Number of channels in the input image. (Default: 64).
+            growth_channels (int): how many filters to add each layer (`k` in paper). (Default: 32).
+            scale_ratio (float): Residual channel scaling column. (Default: 0.2)
         """
         super(ResidualDenseBlock, self).__init__()
         self.conv1 = nn.Sequential(
@@ -263,26 +263,26 @@ class ResidualDenseBlock(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias.data, 0.0)
 
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
-        conv1 = self.conv1(input)
-        conv2 = self.conv2(torch.cat((input, conv1), dim=1))
-        conv3 = self.conv3(torch.cat((input, conv1, conv2), dim=1))
-        conv4 = self.conv4(torch.cat((input, conv1, conv2, conv3), dim=1))
-        conv5 = self.conv5(torch.cat((input, conv1, conv2, conv3, conv4), dim=1))
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        conv1 = self.conv1(x)
+        conv2 = self.conv2(torch.cat((x, conv1), dim=1))
+        conv3 = self.conv3(torch.cat((x, conv1, conv2), dim=1))
+        conv4 = self.conv4(torch.cat((x, conv1, conv2, conv3), dim=1))
+        conv5 = self.conv5(torch.cat((x, conv1, conv2, conv3, conv4), dim=1))
 
-        return conv5.mul(self.scale_ratio) + input
+        return conv5.mul(self.scale_ratio) + x
 
 
 class ResidualInResidualDenseBlock(nn.Module):
     r"""The residual block structure of traditional ESRGAN and Dense model is defined"""
 
-    def __init__(self, in_channels, growth_channels, scale_ratio):
+    def __init__(self, in_channels=64, growth_channels=32, scale_ratio=0.2):
         """
 
         Args:
-            in_channels (int): Number of channels in the input image.
-            growth_channels (int): how many filters to add each layer (`k` in paper).
-            scale_ratio (float): Residual channel scaling column.
+            in_channels (int): Number of channels in the input image. (Default: 64).
+            growth_channels (int): how many filters to add each layer (`k` in paper). (Default: 32).
+            scale_ratio (float): Residual channel scaling column. (Default: 0.2)
         """
         super(ResidualInResidualDenseBlock, self).__init__()
         self.RDB1 = ResidualDenseBlock(in_channels, growth_channels, scale_ratio)
@@ -291,12 +291,12 @@ class ResidualInResidualDenseBlock(nn.Module):
 
         self.scale_ratio = scale_ratio
 
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
-        out = self.RDB1(input)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = self.RDB1(x)
         out = self.RDB2(out)
         out = self.RDB3(out)
 
-        return out.mul(self.scale_ratio) + input
+        return out.mul(self.scale_ratio) + x
 
 
 def _gan(arch, pretrained, progress):
@@ -309,7 +309,7 @@ def _gan(arch, pretrained, progress):
     return model
 
 
-def rfb_esrgan(pretrained: bool = False, progress: bool = True) -> Generator:
+def rfb(pretrained: bool = False, progress: bool = True) -> Generator:
     r"""GAN model architecture from the
     `"One weird trick..." <https://arxiv.org/abs/2005.12597>`_ paper.
 
@@ -317,4 +317,4 @@ def rfb_esrgan(pretrained: bool = False, progress: bool = True) -> Generator:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _gan("rfb_esrgan", pretrained, progress)
+    return _gan("rfb", pretrained, progress)

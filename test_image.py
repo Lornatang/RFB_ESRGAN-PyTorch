@@ -1,4 +1,4 @@
-# Copyright 2020 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright 2021 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -12,98 +12,136 @@
 # limitations under the License.
 # ==============================================================================
 import argparse
-import time
+import logging
+import os
+import random
+import warnings
 
-import cv2
-import lpips
 import torch
+import torch.backends.cudnn as cudnn
+import torch.optim
+import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from PIL import Image
-from sewar.full_ref import mse
-from sewar.full_ref import msssim
-from sewar.full_ref import psnr
-from sewar.full_ref import rmse
-from sewar.full_ref import sam
-from sewar.full_ref import ssim
-from sewar.full_ref import vifp
+from torchvision.transforms import InterpolationMode as Mode
 
-from rfb_esrgan_pytorch import Generator
-from rfb_esrgan_pytorch import cal_niqe
-from rfb_esrgan_pytorch import select_device
+import rfb_esrgan_pytorch.models as models
+from rfb_esrgan_pytorch.utils.common import configure
+from rfb_esrgan_pytorch.utils.common import create_folder
+from rfb_esrgan_pytorch.utils.estimate import iqa
+from rfb_esrgan_pytorch.utils.transform import process_image
+
+model_names = sorted(name for name in models.__dict__
+                     if name.islower() and not name.startswith("__")
+                     and callable(models.__dict__[name]))
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 
 parser = argparse.ArgumentParser(description="Perceptual Extreme Super Resolution Network with Receptive Field Block.")
 parser.add_argument("--lr", type=str, required=True,
                     help="Test low resolution image name.")
-parser.add_argument("--hr", type=str, required=True,
+parser.add_argument("--hr", type=str,
                     help="Raw high resolution image name.")
+parser.add_argument("-a", "--arch", metavar="ARCH", default="rfb",
+                    choices=model_names,
+                    help="Model architecture: " +
+                         " | ".join(model_names) +
+                         " (default: rfb)")
 parser.add_argument("--upscale-factor", type=int, default=4, choices=[4],
-                    help="Low to high resolution scaling factor. (default:4).")
-parser.add_argument("--model-path", default="./weight/RFB_ESRGAN_4x.pth", type=str, metavar="PATH",
-                    help="Path to latest checkpoint for model. (default: ``./weight/RFB_ESRGAN_4x.pth``).")
-parser.add_argument("--device", default="cpu",
-                    help="device id i.e. `0` or `0,1` or `cpu`. (default: ``CUDA:0``).")
+                    help="Low to high resolution scaling factor. (default: 4)")
+parser.add_argument("--model-path", default="", type=str, metavar="PATH",
+                    help="Path to latest checkpoint for model.")
+parser.add_argument("--pretrained", dest="pretrained", action="store_true",
+                    help="Use pre-trained model.")
+parser.add_argument("--seed", default=None, type=int,
+                    help="Seed for initializing training.")
+parser.add_argument("--gpu", default=None, type=int,
+                    help="GPU id to use.")
 
-args = parser.parse_args()
 
-# Selection of appropriate treatment equipment
-device = select_device(args.device, batch_size=1)
+def main():
+    args = parser.parse_args()
 
-# Construct SRGAN model.
-model = Generator(upscale_factor=args.upscale_factor).to(device)
-model.load_state_dict(torch.load(args.model_path, map_location=device))
+    if args.seed is not None:
+        random.seed(args.seed)
+        torch.manual_seed(args.seed)
+        cudnn.deterministic = True
+        warnings.warn("You have chosen to seed training. "
+                      "This will turn on the CUDNN deterministic setting, "
+                      "which can slow down your training considerably! "
+                      "You may see unexpected behavior when restarting "
+                      "from checkpoints.")
 
-# Set model eval mode
-model.eval()
+    main_worker(args.gpu, args)
 
-# Just convert the data to Tensor format
-pre_process = transforms.ToTensor()
 
-# Load image
-lr = Image.open(args.lr)
-hr = Image.open(args.hr)
-lr = pre_process(lr).unsqueeze(0)
-hr = pre_process(hr).unsqueeze(0)
-lr = lr.to(device)
-hr = hr.to(device)
+def main_worker(gpu, args):
+    args.gpu = gpu
 
-start_time = time.time()
-with torch.no_grad():
-    sr = model(lr)
-end_time = time.time()
+    if args.gpu is not None:
+        logger.info(f"Use GPU: {args.gpu} for training.")
 
-vutils.save_image(lr, "lr.png")
-vutils.save_image(sr, "sr.png")
-vutils.save_image(hr, "hr.png")
+    model = configure(args)
 
-# Evaluate performance
-src_img = cv2.imread("sr.png")
-dst_img = cv2.imread("hr.png")
+    if not torch.cuda.is_available():
+        logger.warning("Using CPU, this will be slow.")
+    elif args.gpu is not None:
+        torch.cuda.set_device(args.gpu)
+        model = model.cuda(args.gpu)
 
-# Reference sources from `https://github.com/richzhang/PerceptualSimilarity`
-lpips_loss = lpips.LPIPS(net="vgg").to(device)
+    # Set eval mode.
+    model.eval()
 
-mse_value = mse(src_img, dst_img)
-rmse_value = rmse(src_img, dst_img)
-psnr_value = psnr(src_img, dst_img)
-ssim_value = ssim(src_img, dst_img)
-ms_ssim_value = msssim(src_img, dst_img)  # 30.00+000j
-niqe_value = cal_niqe("sr.png")
-sam_value = sam(src_img, dst_img)
-vif_value = vifp(src_img, dst_img)
-lpips_value = lpips_loss(sr, hr)
+    cudnn.benchmark = True
 
-print("\n")
-print("====================== Performance summary ======================")
-print(f"MSE: {mse_value:.2f}\n"
-      f"RMSE: {rmse_value:.2f}\n"
-      f"PSNR: {psnr_value:.2f}\n"
-      f"SSIM: {ssim_value[0]:.4f}\n"
-      f"MS-SSIM: {ms_ssim_value.real:.4f}\n"
-      f"NIQE: {niqe_value:.2f}\n"
-      f"SAM: {sam_value:.4f}\n"
-      f"VIF: {vif_value:.4f}\n"
-      f"LPIPS: {lpips_value.item():.4f}\n"
-      f"Use time: {(end_time - start_time) * 1000:.2f}ms/{(end_time - start_time):.4f}s.")
-print("============================== End ==============================")
-print("\n")
+    # Get image filename.
+    filename = os.path.basename(args.lr)
+
+    # Read all pictures.
+    lr = Image.open(args.lr)
+    bicubic = transforms.Resize((lr.size[1] * args.upscale_factor, lr.size[0] * args.upscale_factor), Mode.BICUBIC)(lr)
+    lr = process_image(lr, args.gpu)
+    bicubic = process_image(bicubic, args.gpu)
+
+    with torch.no_grad():
+        sr = model(lr)
+
+    if args.hr:
+        hr = process_image(Image.open(args.hr), args.gpu)
+        vutils.save_image(hr, os.path.join("test", f"hr_{filename}"))
+        images = torch.cat([bicubic, sr, hr], dim=-1)
+
+        value = iqa(sr, hr, args.gpu)
+        print(f"Performance avg results:\n")
+        print(f"indicator Score\n")
+        print(f"--------- -----\n")
+        print(f"MSE       {value[0]:6.4f}\n"
+              f"RMSE      {value[1]:6.4f}\n"
+              f"PSNR      {value[2]:6.2f}\n"
+              f"SSIM      {value[3]:6.4f}\n"
+              f"LPIPS     {value[4]:6.4f}\n"
+              f"GMSD      {value[5]:6.4f}\n")
+    else:
+        images = torch.cat([bicubic, sr], dim=-1)
+
+    vutils.save_image(lr, os.path.join("test", f"lr_{filename}"))
+    vutils.save_image(bicubic, os.path.join("test", f"bicubic_{filename}"))
+    vutils.save_image(sr, os.path.join("test", f"sr_{filename}"))
+    vutils.save_image(images, os.path.join("test", f"compare_{filename}"), padding=10)
+
+
+if __name__ == "__main__":
+    print("##################################################\n")
+    print("Run Testing Engine.\n")
+
+    create_folder("test")
+
+    logger.info("TestingEngine:")
+    print("\tAPI version .......... 0.1.0")
+    print("\tBuild ................ 2021.03.23")
+    print("##################################################\n")
+    main()
+
+    logger.info("Test single image performance evaluation completed successfully.\n")

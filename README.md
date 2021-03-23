@@ -66,33 +66,46 @@ $ bash download_dataset.sh
 #### Test benchmark
 
 ```text
-usage: test_benchmark.py [-h] [--dataroot DATAROOT] [-j N]
-                         [--upscale-factor {2,4}] [--model-path PATH]
-                         [--device DEVICE]
+usage: test_benchmark.py [-h] [-a ARCH] [-j N] [-b N] [--sampler-frequency N] [--image-size IMAGE_SIZE] [--upscale-factor {16}] [--model-path PATH] [--pretrained] [--world-size WORLD_SIZE] [--rank RANK] [--dist-url DIST_URL] [--dist-backend DIST_BACKEND] [--seed SEED]
+                         [--gpu GPU] [--multiprocessing-distributed]
+                         DIR
 
 Perceptual Extreme Super Resolution Network with Receptive Field Block.
 
+positional arguments:
+  DIR                   path to dataset
+
 optional arguments:
   -h, --help            show this help message and exit
-  --dataroot DATAROOT   Path to datasets. (default:`./data`)
-  -j N, --workers N     Number of data loading workers. (default:4)
-  --upscale-factor {2,4}
-                        Low to high resolution scaling factor. (default:4).
-  --model-path PATH     Path to latest checkpoint for model. (default:
-                        ``./weights/RFB_ESRGAN_4x.pth``).
-  --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default:
-                        ``CUDA:0``).
-
-
+  -a ARCH, --arch ARCH  Model architecture: rfb (default: rfb)
+  -j N, --workers N     Number of data loading workers. (default: 4)
+  -b N, --batch-size N  mini-batch size (default: 16), this is the total batch size of all GPUs on the current node when using Data Parallel or Distributed Data Parallel
+  --sampler-frequency N
+                        If there are many datasets, this method can be used to increase the number of epochs. (default:1)
+  --image-size IMAGE_SIZE
+                        Image size of high resolution image. (default: 512)
+  --upscale-factor {16}  Low to high resolution scaling factor. (default: 16)
+  --model-path PATH     Path to latest checkpoint for model.
+  --pretrained          Use pre-trained model.
+  --world-size WORLD_SIZE
+                        Number of nodes for distributed training
+  --rank RANK           Node rank for distributed training
+  --dist-url DIST_URL   url used to set up distributed training. (default: tcp://59.110.31.55:12345)
+  --dist-backend DIST_BACKEND
+                        Distributed backend. (default: nccl)
+  --seed SEED           Seed for initializing training.
+  --gpu GPU             GPU id to use.
+  --multiprocessing-distributed
+                        Use multi-processing distributed training to launch N processes per node, which has N GPUs. This is the fastest way to use PyTorch for either single node or multi node data parallel training
+                        
 # Example
-$ python test_benchmark.py --dataroot ./data/DIV2K --upscale-factor 4 --model-path ./weight/RFB_ESRGAN_X4.pth --device 0
+$ python3 test_benchmark.py -a rfb --pretrained --gpu 0 [image-folder with train and val folders]
 ```
 
 #### Test image
 
 ```text
-usage: test_image.py [-h] [--lr LR] [--hr HR] [--upscale-factor {2,4}]
-                     [--model-path PATH] [--device DEVICE]
+usage: test_image.py [-h] --lr LR [--hr HR] [-a ARCH] [--upscale-factor {16}] [--model-path PATH] [--pretrained] [--seed SEED] [--gpu GPU]
 
 Perceptual Extreme Super Resolution Network with Receptive Field Block.
 
@@ -100,38 +113,37 @@ optional arguments:
   -h, --help            show this help message and exit
   --lr LR               Test low resolution image name.
   --hr HR               Raw high resolution image name.
-  --upscale-factor {2,4}
-                        Low to high resolution scaling factor. (default:4).
-  --model-path PATH     Path to latest checkpoint for model. (default:
-                        ``./weight/RFB_ESRGAN_4x.pth``).
-  --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default:
-                        ``CUDA:0``).
+  -a ARCH, --arch ARCH  Model architecture: rfb (default: rfb)
+  --upscale-factor {16}  Low to high resolution scaling factor. (default: 16)
+  --model-path PATH     Path to latest checkpoint for model.
+  --pretrained          Use pre-trained model.
+  --seed SEED           Seed for initializing training.
+  --gpu GPU             GPU id to use.
 
 # Example
-$ python test_image.py --lr ./lr.png --hr ./hr.png --upscale-factor 4 --model-path ./weight/RFB_ESRGAN_X4.pth --device 0
+$ python3 test_image.py -a rfb --lr [path-to-lr-image] --hr [Optional, path-to-hr-image] --pretrained --gpu 0
 ```
 
 #### Test video
 
 ```text
-usage: test_video.py [-h] --file FILE [--upscale-factor {2,4}]
-                     [--model-path PATH] [--device DEVICE] [--view]
+usage: test_video.py [-h] --file FILE [-a ARCH] [--upscale-factor {16}] [--model-path PATH] [--pretrained] [--gpu GPU] [--view]
 
-RFB_ESRGAN algorithm is applied to video files.
+Perceptual Extreme Super Resolution Network with Receptive Field Block.
 
 optional arguments:
   -h, --help            show this help message and exit
   --file FILE           Test low resolution video name.
-  --upscale-factor {2,4}
-                        Low to high resolution scaling factor. (default:4).
-  --model-path PATH     Path to latest checkpoint for model. (default:
-                        ``./weight/RFB_ESRGAN_4x.pth``).
-  --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default:
-                        ``CUDA:0``).
-  --view                Super resolution real time to show.
+  -a ARCH, --arch ARCH  Model architecture: rfb (default: rfb)
+  --upscale-factor {16}
+                        Low to high resolution scaling factor. (default: 16)
+  --model-path PATH     Path to latest checkpoint for model.
+  --pretrained          Use pre-trained model.
+  --gpu GPU             GPU id to use.
+  --view                Do you want to show SR video synchronously.
 
 # Example
-$ python test_video.py --file ./lr.mp4 --upscale-factor 4 --model-path ./weight/RFB_ESRGAN_X4.pth --device 0
+$ python3 test_video.py -a rfb --file [path-to-video] --pretrained --gpu 0 --view 
 ```
 
 Low resolution / Recovered High Resolution / Ground Truth
@@ -142,46 +154,58 @@ Low resolution / Recovered High Resolution / Ground Truth
 ### Train (e.g DIV2K)
 
 ```text
-usage: train.py [-h] [--dataroot DATAROOT] [-j N] [--start-epoch N]
-                [--psnr-iters N] [--iters N] [-b N] [--psnr-lr PSNR_LR]
-                [--lr LR] [--upscale-factor {2,4}] [--resume_PSNR] [--resume]
-                [--manualSeed MANUALSEED] [--device DEVICE]
+usage: train.py [-h] [-a ARCH] [-j N] [--psnr-epochs N] [--start-psnr-epoch N] [--gan-epochs N] [--start-gan-epoch N] [-b N] [--sampler-frequency N] [--psnr-lr PSNR_LR] [--gan-lr GAN_LR] [--image-size IMAGE_SIZE] [--upscale-factor {16}] [--model-path PATH]
+                [--resume_psnr PATH] [--resume_d PATH] [--resume_g PATH] [--pretrained] [--world-size WORLD_SIZE] [--rank RANK] [--dist-url DIST_URL] [--dist-backend DIST_BACKEND] [--seed SEED] [--gpu GPU] [--multiprocessing-distributed]
+                DIR
 
 Perceptual Extreme Super Resolution Network with Receptive Field Block.
 
+positional arguments:
+  DIR                   Path to dataset
+
 optional arguments:
   -h, --help            show this help message and exit
-  --dataroot DATAROOT   Path to datasets. (default:`./data`)
-  -j N, --workers N     Number of data loading workers. (default:4)
-  --start-epoch N       manual epoch number (useful on restarts)
-  --psnr-iters N        The number of iterations is needed in the training of
-                        PSNR model. (default:1e6)
-  --iters N             The training of srgan model requires the number of
-                        iterations. (default:4e5)
-  -b N, --batch-size N  mini-batch size (default: 16), this is the total batch
-                        size of all GPUs on the current node when using Data
-                        Parallel or Distributed Data Parallel.
-  --psnr-lr PSNR_LR     Learning rate for PSNR model. (default:2e-4)
-  --lr LR               Learning rate. (default:1e-4)
-  --upscale-factor {2,4}
-                        Low to high resolution scaling factor. (default:4).
-  --resume_PSNR         Path to latest checkpoint for PSNR model.
-  --resume              Path to latest checkpoint for Generator.
-  --manualSeed MANUALSEED
-                        Seed for initializing training. (default:10000)
-  --device DEVICE       device id i.e. `0` or `0,1` or `cpu`. (default: ``).
+  -a ARCH, --arch ARCH  Model architecture: rfb (default: rfb)
+  -j N, --workers N     Number of data loading workers. (default: 4)
+  --psnr-epochs N       Number of total psnr epochs to run. (default: 4630)
+  --start-psnr-epoch N  Manual psnr epoch number (useful on restarts). (default: 0)
+  --gan-epochs N        Number of total gan epochs to run. (default: 1852)
+  --start-gan-epoch N   Manual gan epoch number (useful on restarts). (default: 0)
+  -b N, --batch-size N  Mini-batch size (default: 16), this is the total batch size of all GPUs on the current node when using Data Parallel or Distributed Data Parallel
+  --sampler-frequency N
+                        If there are many datasets, this method can be used to increase the number of epochs. (default:1)
+  --psnr-lr PSNR_LR     Learning rate for psnr-oral. (default: 0.0001)
+  --gan-lr GAN_LR       Learning rate for gan-oral. (default: 0.0001)
+  --image-size IMAGE_SIZE
+                        Image size of high resolution image. (default: 512)
+  --upscale-factor {16}
+                        Low to high resolution scaling factor. Optional: [16] (default: 16)
+  --model-path PATH     Path to latest checkpoint for model.
+  --resume_psnr PATH    Path to latest psnr-oral checkpoint.
+  --resume_d PATH       Path to latest -oral checkpoint.
+  --resume_g PATH       Path to latest psnr-oral checkpoint.
+  --pretrained          Use pre-trained model.
+  --world-size WORLD_SIZE
+                        Number of nodes for distributed training
+  --rank RANK           Node rank for distributed training
+  --dist-url DIST_URL   url used to set up distributed training. (default: tcp://59.110.31.55:12345)
+  --dist-backend DIST_BACKEND
+                        Distributed backend. (default: nccl)
+  --seed SEED           Seed for initializing training.
+  --gpu GPU             GPU id to use.
+  --multiprocessing-distributed
+                        Use multi-processing distributed training to launch N processes per node, which has N GPUs. This is the fastest way to use PyTorch for either single node or multi node data parallel training
 
 # Example (e.g DIV2K)
-$ python train.py --dataroot ./data/DIV2K --upscale-factor 4
+$ python train.py -a srgan [image-folder with train and val folders]
+# Multi-processing Distributed Data Parallel Training
+$ python3 train.py -a rfb --dist-url 'tcp://127.0.0.1:12345' --dist-backend 'nccl' --multiprocessing-distributed --world-size 1 --rank 0 [image-folder with train and val folders]
 ```
 
 If you want to load weights that you've trained before, run the following command.
 
 ```bash
-$ python train.py --dataroot ./data/DIV2K \
-                  --upscale-factor 4        \
-                  --resume_PSNR \
-                  --resume
+$ python3 train.py -a rfb --start-psnr-epoch 10 --resume-psnr weights/PSNR_epoch10.pth [image-folder with train and val folders] 
 ```
 
 ### Contributing

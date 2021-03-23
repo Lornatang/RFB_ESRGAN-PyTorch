@@ -47,8 +47,8 @@ parser.add_argument("-a", "--arch", metavar="ARCH", default="rfb",
                     help="Model architecture: " +
                          " | ".join(model_names) +
                          " (default: rfb)")
-parser.add_argument("--upscale-factor", type=int, default=4, choices=[4],
-                    help="Low to high resolution scaling factor. (default: 4)")
+parser.add_argument("--upscale-factor", type=int, default=16, choices=[16],
+                    help="Low to high resolution scaling factor. (default: 16)")
 parser.add_argument("--model-path", default="", type=str, metavar="PATH",
                     help="Path to latest checkpoint for model.")
 parser.add_argument("--pretrained", dest="pretrained", action="store_true",

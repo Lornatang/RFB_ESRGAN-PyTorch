@@ -53,6 +53,8 @@ parser.add_argument("--model-path", default="", type=str, metavar="PATH",
                     help="Path to latest checkpoint for model.")
 parser.add_argument("--pretrained", dest="pretrained", action="store_true",
                     help="Use pre-trained model.")
+parser.add_argument("--seed", default=None, type=int,
+                    help="Seed for initializing training.")
 parser.add_argument("--gpu", default=None, type=int,
                     help="GPU id to use.")
 parser.add_argument("--view", dest="view", action="store_true",
@@ -79,7 +81,7 @@ def main_worker(gpu, args):
     args.gpu = gpu
 
     if args.gpu is not None:
-        logger.info(f"Use GPU: {args.gpu} for training.")
+        logger.info(f"Use GPU: {args.gpu} for testing.")
 
     model = configure(args)
 
@@ -181,7 +183,7 @@ if __name__ == "__main__":
 
     logger.info("SREngine:")
     print("\tAPI version .......... 0.1.0")
-    print("\tBuild ................ 2021.03.23")
+    print("\tBuild ................ 2021.04.01")
     print("##################################################\n")
     main()
 

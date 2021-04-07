@@ -44,7 +44,7 @@ logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 
 parser = argparse.ArgumentParser(description="Perceptual Extreme Super Resolution Network with Receptive Field Block.")
 parser.add_argument("data", metavar="DIR",
-                    help="path to dataset")
+                    help="Path to dataset.")
 parser.add_argument("-a", "--arch", metavar="ARCH", default="rfb",
                     choices=model_names,
                     help="Model architecture: " +
@@ -62,7 +62,7 @@ parser.add_argument("--sampler-frequency", default=1, type=int, metavar="N",
                          "to increase the number of epochs. (default:1)")
 parser.add_argument("--image-size", type=int, default=512,
                     help="Image size of high resolution image. (default: 512)")
-parser.add_argument("--upscale-factor", type=int, default=16, choices=[16],
+parser.add_argument("--upscale-factor", type=int, default=16, choices=[4, 16],
                     help="Low to high resolution scaling factor. (default: 16)")
 parser.add_argument("--model-path", default="", type=str, metavar="PATH",
                     help="Path to latest checkpoint for model.")
@@ -81,10 +81,10 @@ parser.add_argument("--seed", default=None, type=int,
 parser.add_argument("--gpu", default=None, type=int,
                     help="GPU id to use.")
 parser.add_argument("--multiprocessing-distributed", action="store_true",
-                    help="Use multi-processing distributed training to launch "
+                    help="Use multi-processing distributed testing to launch "
                          "N processes per node, which has N GPUs. This is the "
                          "fastest way to use PyTorch for either single node or "
-                         "multi node data parallel training")
+                         "multi node data parallel testing.")
 
 total_mse_value = 0.0
 total_rmse_value = 0.0
@@ -129,8 +129,7 @@ def main():
 
 
 def main_worker(gpu, ngpus_per_node, args):
-    global total_mse_value, total_rmse_value, total_psnr_value
-    global total_ssim_value, total_lpips_value, total_gmsd_value
+    global total_mse_value, total_rmse_value, total_psnr_value, total_ssim_value, total_lpips_value, total_gmsd_value
     args.gpu = gpu
 
     if args.gpu is not None:
@@ -143,10 +142,7 @@ def main_worker(gpu, ngpus_per_node, args):
             # For multiprocessing distributed training, rank needs to be the
             # global rank among all the processes
             args.rank = args.rank * ngpus_per_node + gpu
-        dist.init_process_group(backend=args.dist_backend,
-                                init_method=args.dist_url,
-                                world_size=args.world_size,
-                                rank=args.rank)
+        dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url, world_size=args.world_size, rank=args.rank)
     model = configure(args)
 
     if not torch.cuda.is_available():
@@ -182,13 +178,8 @@ def main_worker(gpu, ngpus_per_node, args):
 
     logger.info("Load testing dataset")
     # Selection of appropriate treatment equipment.
-    dataset = BaseTestDataset(root=os.path.join(args.data, "test"),
-                              image_size=args.image_size,
-                              upscale_factor=args.upscale_factor)
-    dataloader = torch.utils.data.DataLoader(dataset,
-                                             batch_size=args.batch_size,
-                                             pin_memory=True,
-                                             num_workers=args.workers)
+    dataset = BaseTestDataset(os.path.join(args.data, "test"), args.image_size, args.upscale_factor)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, pin_memory=True, num_workers=args.workers)
     logger.info(f"Dataset information:\n"
                 f"\tPath:              {os.getcwd()}/{args.data}/test\n"
                 f"\tNumber of samples: {len(dataset)}\n"
@@ -229,8 +220,8 @@ def main_worker(gpu, ngpus_per_node, args):
                                      f"PSNR: {total_psnr_value / (i + 1):6.2f} "
                                      f"SSIM: {total_ssim_value / (i + 1):6.4f}")
 
-        images = torch.cat([bicubic, sr, hr], dim=-1)
-        vutils.save_image(images, os.path.join("benchmark", f"{i + 1}.bmp"), padding=10)
+        images = torch.cat([bicubic, sr, hr], -1)
+        vutils.save_image(images, os.path.join("benchmarks", f"{i + 1}.bmp"), padding=10)
 
     print(f"Performance average results:\n")
     print(f"indicator Score\n")
@@ -247,11 +238,11 @@ if __name__ == "__main__":
     print("##################################################\n")
     print("Run Testing Engine.\n")
 
-    create_folder("benchmark")
+    create_folder("benchmarks")
 
     logger.info("TestingEngine:")
     print("\tAPI version .......... 0.1.0")
-    print("\tBuild ................ 2021.04.01")
+    print("\tBuild ................ 2021.04.07")
     print("##################################################\n")
     main()
 

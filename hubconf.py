@@ -1,4 +1,4 @@
-# Copyright 2021 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright 2020 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -19,7 +19,7 @@ Usage:
 import torch
 from torch.hub import load_state_dict_from_url
 
-from rfb_esrgan_pytorch.models import Generator
+from rfb_esrgan_pytorch.models.generator import Generator
 
 model_urls = {
     "rfb": "https://github.com/Lornatang/RFB_ESRGAN-PyTorch/releases/download/0.1.0/RFB_ESRGAN_DF2K-e31a1b2e.pth"
@@ -28,23 +28,29 @@ model_urls = {
 dependencies = ["torch"]
 
 
-def create(arch, pretrained, progress):
-    model = Generator()
+def create(arch: str, upscale_factor: int, pretrained: bool, progress: bool) -> Generator:
+    model = Generator(upscale_factor)
     if pretrained:
-        state_dict = load_state_dict_from_url(model_urls[arch],
-                                              progress=progress,
-                                              map_location=torch.device("cpu"))
+        state_dict = load_state_dict_from_url(model_urls[arch], progress=progress, map_location=torch.device("cpu"))
         model.load_state_dict(state_dict)
     return model
 
 
-def rfb(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the
-    `"One weird trick..."<https://arxiv.org/abs/2005.12597>`_ paper.
+def rfb_4x4(pretrained: bool = False, progress: bool = True) -> Generator:
+    r"""GAN model architecture from the `"One weird trick..." <https://arxiv.org/abs/2005.12597>` paper.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return create("rfb", pretrained, progress)
+    return create("rfb_4x4", 4, pretrained, progress)
 
+
+def rfb(pretrained: bool = False, progress: bool = True) -> Generator:
+    r"""GAN model architecture from the `"One weird trick..." <https://arxiv.org/abs/2005.12597>` paper.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+        progress (bool): If True, displays a progress bar of the download to stderr
+    """
+    return create("rfb", 16, pretrained, progress)

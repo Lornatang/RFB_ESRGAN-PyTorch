@@ -31,11 +31,12 @@ URL = "https://github.com/Lornatang/RFB_ESRGAN-PyTorch"
 EMAIL = "liu_changyu@dakewe.com"
 AUTHOR = "Liu Changyu"
 REQUIRES_PYTHON = ">=3.8.0"
-VERSION = "0.1.0"
+VERSION = "v0.1.0"
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-    "torch"
+    "torch",
+    "lpips"
 ]
 
 # What packages are optional?
@@ -94,8 +95,7 @@ class UploadCommand(Command):
             pass
 
         self.status("Building Source and Wheel (universal) distribution…")
-        os.system(
-            "{0} setup.py sdist bdist_wheel --universal".format(sys.executable))
+        os.system("{0} setup.py sdist bdist_wheel --universal".format(sys.executable))
 
         self.status("Uploading the package to PyPI via Twine…")
         os.system("twine upload dist/*")

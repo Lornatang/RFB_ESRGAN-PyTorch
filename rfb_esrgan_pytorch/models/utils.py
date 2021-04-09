@@ -145,7 +145,7 @@ class ReceptiveFieldBlock(nn.Module):
         )
 
         self.conv_linear = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0)
-        self.leaky_relu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
+        self.leaky_relu = nn.LeakyReLU(negative_slope=0.2, inplace=False)
 
         self.scale_ratio = scale_ratio
 
@@ -206,7 +206,7 @@ class ReceptiveFieldDenseBlock(nn.Module):
             nn.LeakyReLU(negative_slope=0.2, inplace=True)
         )
 
-        self.rfb5 = ReceptiveFieldBlock(channels + 4 * growth_channels, growth_channels, scale_ratio)
+        self.rfb5 = ReceptiveFieldBlock(channels + 4 * growth_channels, channels, scale_ratio)
 
         self.scale_ratio = scale_ratio
 
@@ -219,10 +219,10 @@ class ReceptiveFieldDenseBlock(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         rfb1 = self.rfb1(x)
-        rfb2 = self.rfb2(torch.cat((x, rfb1), 1))
-        rfb3 = self.rfb3(torch.cat((x, rfb1, rfb2), 1))
-        rfb4 = self.rfb4(torch.cat((x, rfb1, rfb2, rfb3), 1))
-        rfb5 = self.rfb5(torch.cat((x, rfb1, rfb2, rfb3, rfb4), 1))
+        rfb2 = self.rfb2(torch.cat((x, rfb1), dim=1))
+        rfb3 = self.rfb3(torch.cat((x, rfb1, rfb2), dim=1))
+        rfb4 = self.rfb4(torch.cat((x, rfb1, rfb2, rfb3), dim=1))
+        rfb5 = self.rfb5(torch.cat((x, rfb1, rfb2, rfb3, rfb4), dim=1))
 
         return rfb5 * self.scale_ratio + x
 
@@ -253,10 +253,10 @@ class ResidualOfReceptiveFieldDenseBlock(nn.Module):
 
 
 class SubpixelConvolutionLayer(nn.Module):
-    def __init__(self, channels: int) -> None:
+    def __init__(self, channels: int = 64) -> None:
         """
         Args:
-            channels (int): Number of channels in the input image.
+            channels (int): Number of channels in the input image. (Default: 64)
         """
         super(SubpixelConvolutionLayer, self).__init__()
         self.upsample = nn.Upsample(scale_factor=2, mode="nearest")

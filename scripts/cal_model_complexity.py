@@ -1,4 +1,4 @@
-# Copyright 2020 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright 2021 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -24,11 +24,11 @@ model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__")
                      and callable(models.__dict__[name]))
 
-parser = argparse.ArgumentParser("Research on the technology of digital pathological image super-resolution.")
+parser = argparse.ArgumentParser(description="Perceptual Extreme Super Resolution Network with Receptive Field Block.")
 parser.add_argument("-b", "--batch-size", type=int, default=16,
-                    help="When calculating full memory inference speed. (Default: 16)")
-parser.add_argument("-i", "--image-size", type=int, default=64,
-                    help="Image size of low-resolution. (Default: 64)")
+                    help="When calculating full memory inference speed. (default: 16)")
+parser.add_argument("-i", "--image-size", type=int, default=32,
+                    help="Image size of low-resolution. (Default: 32).")
 parser.add_argument("--gpu", default=None, type=int,
                     help="GPU id to use.")
 

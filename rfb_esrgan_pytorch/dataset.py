@@ -17,7 +17,7 @@ import random
 import torch.utils.data.dataset
 import torchvision.transforms as transforms
 from PIL import Image
-from torchvision.transforms import InterpolationMode as mode
+from torchvision.transforms import InterpolationMode
 
 __all__ = [
     "check_image_file",
@@ -26,7 +26,7 @@ __all__ = [
 ]
 
 
-def check_image_file(filename):
+def check_image_file(filename: str):
     r"""Filter non image files in directory.
 
     Args:
@@ -35,32 +35,28 @@ def check_image_file(filename):
     Returns:
         Return True if bool(x) is True for any x in the iterable.
     """
-    return any(filename.endswith(extension) for extension in [".jpg", ".JPG",
-                                                              ".jpeg", ".JPEG",
-                                                              ".png", ".PNG",
-                                                              ".bmp", ".BMP"])
+    return any(filename.endswith(extension) for extension in [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".JPG", ".JPEG", ".PNG", ".BMP"])
 
 
 class BaseTrainDataset(torch.utils.data.dataset.Dataset):
-    """An abstract class representing a :class:`Dataset`."""
-
     def __init__(self, root: str, image_size: int = 512, upscale_factor: int = 16):
-        """
+        r"""
         Args:
             root (str): The directory address where the data image is stored.
-            image_size (optional, int): The size of image block is randomly cut out from the original image. (Default: 512).
-            upscale_factor (optional, int): Image magnification. (Default: 16).
+            image_size (optional, int): The size of image block is randomly cut out from the original image. (Default: 512)
+            upscale_factor (optional, int): Image magnification. (Default: 16)
         """
         super(BaseTrainDataset, self).__init__()
         self.filenames = [os.path.join(root, x) for x in os.listdir(root) if check_image_file(x)]
 
         self.lr_transforms = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((image_size // upscale_factor, image_size // upscale_factor), interpolation=mode.BICUBIC),
+            transforms.Resize((image_size // upscale_factor, image_size // upscale_factor), interpolation=InterpolationMode.BICUBIC),
             transforms.ToTensor()
         ])
         self.hr_transforms = transforms.Compose([
             transforms.RandomCrop((image_size, image_size)),
+            transforms.AutoAugment(),
             transforms.ToTensor()
         ])
 
@@ -83,30 +79,29 @@ class BaseTrainDataset(torch.utils.data.dataset.Dataset):
 
 
 class BaseTestDataset(torch.utils.data.dataset.Dataset):
-    """An abstract class representing a :class:`Dataset`."""
-
     def __init__(self, root: str, image_size: int = 512, upscale_factor: int = 16):
-        """
+        r"""
         Args:
             root (str): The directory address where the data image is stored.
-            image_size (optional, int): The size of image block is randomly cut out from the original image. (Default: 512).
-            upscale_factor (optional, int): Image magnification. (Default: 16).
+            image_size (optional, int): The size of image block is randomly cut out from the original image. (Default: 512)
+            upscale_factor (optional, int): Image magnification. (Default: 16)
         """
         super(BaseTestDataset, self).__init__()
         self.filenames = [os.path.join(root, x) for x in os.listdir(root) if check_image_file(x)]
 
         self.lr_transforms = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((image_size // upscale_factor, image_size // upscale_factor), interpolation=mode.BICUBIC),
+            transforms.Resize((image_size // upscale_factor, image_size // upscale_factor), interpolation=InterpolationMode.BICUBIC),
             transforms.ToTensor()
         ])
         self.bicubic_transforms = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((image_size, image_size), interpolation=mode.BICUBIC),
+            transforms.Resize((image_size, image_size), interpolation=InterpolationMode.BICUBIC),
             transforms.ToTensor()
         ])
         self.hr_transforms = transforms.Compose([
             transforms.RandomCrop((image_size, image_size)),
+            transforms.AutoAugment(),
             transforms.ToTensor()
         ])
 
@@ -130,15 +125,11 @@ class BaseTestDataset(torch.utils.data.dataset.Dataset):
 
 
 class CustomTrainDataset(torch.utils.data.dataset.Dataset):
-    r"""An abstract class representing a :class:`Dataset`."""
-
     def __init__(self, root: str, sampler_frequency: int = 1):
-        """
-
+        r"""
         Args:
             root (str): The directory address where the data image is stored.
-            sampler_frequency (list): If there are many datasets, this method can be used to increase
-                the number of epochs. (Default: 1).
+            sampler_frequency (int): If there are many datasets, this method can be used to increase the number of epochs. (Default: 1)
         """
         super(CustomTrainDataset, self).__init__()
         lr_dir = os.path.join(root, "input")
@@ -169,16 +160,12 @@ class CustomTrainDataset(torch.utils.data.dataset.Dataset):
 
 
 class CustomTestDataset(torch.utils.data.dataset.Dataset):
-    r"""An abstract class representing a :class:`Dataset`."""
-
-    def __init__(self, root: str, image_size: int, sampler_frequency: int = 1):
-        """
-
+    def __init__(self, root: str, image_size: int = 256, sampler_frequency: int = 1):
+        r"""
         Args:
             root (str): The directory address where the data image is stored.
-            image_size (optional, int): The size of image block is randomly cut out from the original image.
-            sampler_frequency (list): If there are many datasets, this method can be used to increase
-                the number of epochs. (Default: 1).
+            image_size (optional, int): The size of image block is randomly cut out from the original image. (Default: 256)
+            sampler_frequency (list): If there are many datasets, this method can be used to increase the number of epochs. (Default: 1)
         """
         super(CustomTestDataset, self).__init__()
         lr_dir = os.path.join(root, "input")
@@ -191,7 +178,7 @@ class CustomTestDataset(torch.utils.data.dataset.Dataset):
         self.transforms = transforms.ToTensor()
         self.bicubic_transforms = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((image_size, image_size), interpolation=mode.BICUBIC),
+            transforms.Resize((image_size, image_size), interpolation=InterpolationMode.BICUBIC),
             transforms.ToTensor()
         ])
 

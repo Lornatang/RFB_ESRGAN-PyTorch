@@ -12,3 +12,4 @@
 # limitations under the License.
 # ==============================================================================
 from .generator import rfb
+from .generator import rfb_4x4

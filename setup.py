@@ -27,7 +27,7 @@ URL = "https://github.com/Lornatang/RFB_ESRGAN-PyTorch"
 EMAIL = "liu_changyu@dakewe.com"
 AUTHOR = "Liu Goodfellow"
 REQUIRES_PYTHON = ">=3.6.0"
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 # Libraries that must be installed.
 REQUIRED = [

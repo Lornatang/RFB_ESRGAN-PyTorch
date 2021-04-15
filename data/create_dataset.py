@@ -19,11 +19,12 @@ import shutil
 rate = 0.1
 
 
-def split_dataset(train_dir: str = None) -> None:
+def split_dataset(train_dir: str = None, val_dir: str = None) -> None:
     """ Make training data set and validation data set.
 
     Args:
         train_dir (str): Train image folder path.
+        val_dir (str): Val image folder path.
     """
     # The original data set is divided into 9:1 (train:val)
     for _, _, files in os.walk(train_dir):
@@ -41,4 +42,4 @@ def split_dataset(train_dir: str = None) -> None:
 
 
 if __name__ == "__main__":
-    split_dataset(train_dir="./train/input")
+    split_dataset(train_dir="./train/input", val_dir="./test/input")

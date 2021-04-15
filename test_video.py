@@ -43,11 +43,11 @@ parser.add_argument("-a", "--arch", metavar="ARCH", default="rfb",
                     choices=model_names,
                     help="Model architecture: " +
                          " | ".join(model_names) +
-                         ". (Default: rfb)")
+                         ". (Default: `rfb`)")
 parser.add_argument("--upscale-factor", type=int, default=16, choices=[4, 16],
-                    help="Low to high resolution scaling factor. Optional: [4, 16]. (Default: 16)")
-parser.add_argument("--model-path", default="./weights/GAN.pth", type=str, metavar="PATH",
-                    help="Path to latest checkpoint for model. (Default: `./weights/GAN.pth`)")
+                    help="Low to high resolution scaling factor. Optional: [16]. (Default: 16)")
+parser.add_argument("--model-path", default="", type=str, metavar="PATH",
+                    help="Path to latest checkpoint for model. (Default: ``)")
 parser.add_argument("--pretrained", dest="pretrained", action="store_true",
                     help="Use pre-trained model.")
 parser.add_argument("--seed", default=666, type=int,
@@ -168,7 +168,7 @@ if __name__ == "__main__":
 
     logger.info("SREngine:")
     print("\tAPI version .......... 0.1.0")
-    print("\tBuild ................ 2021.04.09")
+    print("\tBuild ................ 2021.04.15")
     print("##################################################\n")
     main()
 

@@ -1,4 +1,4 @@
-# Copyright 2020 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright 2021 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -23,8 +23,8 @@ from .utils import ResidualOfReceptiveFieldDenseBlock
 from .utils import SubpixelConvolutionLayer
 
 model_urls = {
-    "rfb_4x4": "https://github.com/Lornatang/RFB_ESRGAN-PyTorch/releases/download/v0.1.0/RFB_ESRGAN_DF2K-e31a1b2e.pth",
-    "rfb": "https://github.com/Lornatang/RFB_ESRGAN-PyTorch/releases/download/v0.1.0/RFB_ESRGAN_DF2K-e31a1b2e.pth"
+    "rfb_4x4": None,
+    "rfb": None
 }
 
 
@@ -76,7 +76,7 @@ class Generator(nn.Module):
 
         trunk_a = self.Trunk_a(conv1)
         trunk_rfb = self.Trunk_RFB(trunk_a)
-        out = torch.add(conv1, trunk_rfb)
+        out = conv1 + trunk_rfb
 
         out = self.RFB(out)
 

@@ -101,7 +101,6 @@ class BaseTestDataset(torch.utils.data.dataset.Dataset):
         ])
         self.hr_transforms = transforms.Compose([
             transforms.RandomCrop((image_size, image_size)),
-            transforms.AutoAugment(),
             transforms.ToTensor()
         ])
 

@@ -22,8 +22,8 @@ from torch.hub import load_state_dict_from_url
 from rfb_esrgan_pytorch.models.generator import Generator
 
 model_urls = {
-    "rfb_4x4": "https://github.com/Lornatang/RFB_ESRGAN-PyTorch/releases/download/v0.1.0/RFB_ESRGAN_DF2K-e31a1b2e.pth",
-    "rfb": "https://github.com/Lornatang/RFB_ESRGAN-PyTorch/releases/download/v0.1.0/RFB_ESRGAN_DF2K-e31a1b2e.pth"
+    "rfb_4x4": None,
+    "rfb": None
 }
 
 dependencies = ["torch"]

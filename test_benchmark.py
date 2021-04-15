@@ -54,7 +54,7 @@ parser.add_argument("--sampler-frequency", default=1, type=int, metavar="N",
 parser.add_argument("--image-size", type=int, default=512,
                     help="Image size of high resolution image. (Default: 512)")
 parser.add_argument("--upscale-factor", type=int, default=16, choices=[4, 16],
-                    help="Low to high resolution scaling factor. Optional: [16]. (Default: 16)")
+                    help="Low to high resolution scaling factor. Optional: [4, 16]. (Default: 16)")
 parser.add_argument("--model-path", default="", type=str, metavar="PATH",
                     help="Path to latest checkpoint for model. (Default: ``)")
 parser.add_argument("--pretrained", dest="pretrained", action="store_true",

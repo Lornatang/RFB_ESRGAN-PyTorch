@@ -261,19 +261,15 @@ class SubpixelConvolutionLayer(nn.Module):
         super(SubpixelConvolutionLayer, self).__init__()
         self.upsample = nn.Upsample(scale_factor=2, mode="nearest")
         self.rfb1 = ReceptiveFieldBlock(channels, channels, scale_ratio=0.1)
-        self.leaky_relu1 = nn.LeakyReLU(negative_slope=0.2, inplace=True)
         self.conv = nn.Conv2d(channels, channels * 4, kernel_size=3, stride=1, padding=1)
         self.pixel_shuffle = nn.PixelShuffle(upscale_factor=2)
         self.rfb2 = ReceptiveFieldBlock(channels, channels, scale_ratio=0.1)
-        self.leaky_relu2 = nn.LeakyReLU(negative_slope=0.2, inplace=True)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = self.upsample(x)
         out = self.rfb1(out)
-        out = self.leaky_relu1(out)
         out = self.conv(out)
         out = self.pixel_shuffle(out)
         out = self.rfb2(out)
-        out = self.leaky_relu2(out)
 
         return out

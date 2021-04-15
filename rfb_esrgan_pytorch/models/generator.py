@@ -44,17 +44,17 @@ class Generator(nn.Module):
         # 16 ResidualInResidualDenseBlock layer.
         residual_residual_dense_blocks = []
         for _ in range(16):
-            residual_residual_dense_blocks += [ResidualInResidualDenseBlock(channels=64, growth_channels=32, scale_ratio=0.2)]
+            residual_residual_dense_blocks += [ResidualInResidualDenseBlock(channels=64, growth_channels=32)]
         self.Trunk_a = nn.Sequential(*residual_residual_dense_blocks)
 
         # 8 ResidualOfReceptiveFieldDenseBlock layer.
         residual_residual_fields_dense_blocks = []
         for _ in range(8):
-            residual_residual_fields_dense_blocks += [ResidualOfReceptiveFieldDenseBlock(channels=64, growth_channels=32, scale_ratio=0.1)]
+            residual_residual_fields_dense_blocks += [ResidualOfReceptiveFieldDenseBlock(channels=64, growth_channels=32)]
         self.Trunk_RFB = nn.Sequential(*residual_residual_fields_dense_blocks)
 
         # Second conv layer post residual field blocks
-        self.RFB = ReceptiveFieldBlock(in_channels=64, out_channels=64, scale_ratio=0.1)
+        self.RFB = ReceptiveFieldBlock(64, 64)
 
         # Sub-pixel convolution layers.
         subpixel_conv_layers = []
@@ -72,16 +72,23 @@ class Generator(nn.Module):
         self.conv3 = nn.Conv2d(64, 3, kernel_size=3, stride=1, padding=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # First convolution layer.
         conv1 = self.conv1(x)
 
+        # ResidualInResidualDenseBlock network with 16 layers.
         trunk_a = self.Trunk_a(conv1)
         trunk_rfb = self.Trunk_RFB(trunk_a)
-        out = conv1 + trunk_rfb
+        # First convolution and ResidualOfReceptiveFieldDenseBlock feature image fusion.
+        out = torch.add(conv1, trunk_rfb)
 
+        # First ReceptiveFieldBlock layer.
         out = self.RFB(out)
 
+        # Using sub-pixel convolution layer to improve image resolution.
         out = self.subpixel_conv(out)
+        # Second convolution layer.
         out = self.conv2(out)
+        # Output RGB channel image.
         out = self.conv3(out)
 
         return out

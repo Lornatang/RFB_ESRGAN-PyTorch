@@ -18,15 +18,20 @@ import prettytable as pt
 import torch
 from thop import profile
 
-import rfb_esrgan_pytorch.models as models
+import esrgan_pytorch.models as models
 
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__")
                      and callable(models.__dict__[name]))
 
-parser = argparse.ArgumentParser(description="Perceptual Extreme Super Resolution Network with Receptive Field Block.")
+parser = argparse.ArgumentParser(description="ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks.")
 parser.add_argument("-i", "--image-size", type=int, default=32,
                     help="Image size of low-resolution. (Default: 32)")
+parser.add_argument("-b", "--batch-size", default=128, type=int,
+                    metavar="N",
+                    help="Mini-batch size (default: 128), this is the total "
+                         "batch size of all GPUs on the current node when "
+                         "using Data Parallel or Distributed Data Parallel.")
 parser.add_argument("--gpu", default=None, type=int,
                     help="GPU id to use.")
 
@@ -41,18 +46,18 @@ def inference(arch, cpu_data, cuda_data, args):
 
     with torch.no_grad():
         start_time = time.time()
-        for _ in range(64):
+        for _ in range(args.batch_size):
             _ = cpu_model(cpu_data)
-        cpu_speed = (time.time() - start_time) / 64 * 1E3
+        cpu_speed = (time.time() - start_time) / args.batch_size * 1E3
         cuda_speed = 0.
 
         if args.gpu is not None:
             cuda_model = cpu_model.cuda(args.gpu)
 
             start_time = time.time()
-            for _ in range(64):
+            for _ in range(args.batch_size):
                 _ = cuda_model(cuda_data)
-            cuda_speed = (time.time() - start_time) / 64 * 1E3
+            cuda_speed = (time.time() - start_time) / args.batch_size * 1E3
 
     return params, flops, cpu_speed, cuda_speed
 

@@ -22,26 +22,25 @@ import torch
 import torch.backends.cudnn as cudnn
 from PIL import Image
 
-import rfb_esrgan_pytorch.models as models
-from rfb_esrgan_pytorch.utils.common import configure
-from rfb_esrgan_pytorch.utils.estimate import iqa
-from rfb_esrgan_pytorch.utils.transform import process_image
+import esrgan_pytorch.models as models
+from esrgan_pytorch.utils.estimate import iqa
+from esrgan_pytorch.utils.transform import process_image
 
 model_names = sorted(name for name in models.__dict__ if name.islower() and not name.startswith("__") and callable(models.__dict__[name]))
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="[ %(levelname)s ] %(message)s", level=logging.INFO)
 
-parser = argparse.ArgumentParser(description="Perceptual Extreme Super Resolution Network with Receptive Field Block.")
+parser = argparse.ArgumentParser(description="ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks.")
 parser.add_argument("--lr", type=str, required=True,
                     help="Test low resolution image name.")
 parser.add_argument("--hr", type=str, required=True,
                     help="Raw high resolution image name.")
-parser.add_argument("-a", "--arch", metavar="ARCH", default="rfb",
+parser.add_argument("-a", "--arch", metavar="ARCH", default="esrgan16",
                     choices=model_names,
                     help="Model architecture: " +
                          " | ".join(model_names) +
-                         ". (Default: `rfb`)")
+                         ". (Default: `esrgan16`)")
 parser.add_argument("--model-dir", default="", type=str, metavar="PATH",
                     help="Path to latest checkpoint for model.")
 parser.add_argument("--seed", default=666, type=int,
@@ -77,11 +76,11 @@ def main_worker(gpu, args):
     args.gpu = gpu
 
     if args.gpu is not None:
-        logger.info(f"Use GPU: {args.gpu} for training.")
+        logger.info(f"Use GPU: {args.gpu} for testing.")
 
     cudnn.benchmark = True
 
-    model = configure(args)
+    model = models.__dict__[args.arch]()
 
     if not torch.cuda.is_available():
         logger.warning("Using CPU, this will be slow.")
@@ -112,8 +111,8 @@ def main_worker(gpu, args):
     print(f"Best model: `{best_model}`.")
     print(f"indicator Score")
     print(f"--------- -----")
-    print(f"MSE       {best_mse_value:6.4f}"
-          f"RMSE      {best_rmse_value:6.2f}"
+    print(f"MSE       {best_mse_value:6.4f}\n"
+          f"RMSE      {best_rmse_value:6.2f}\n"
           f"PSNR      {best_psnr_value:6.2f}\n"
           f"SSIM      {best_ssim_value:6.4f}\n"
           f"LPIPS     {best_lpips_value:6.4f}\n"

@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from esrgan_pytorch.models.generator import esrgan16
+from rfb_esrgan_pytorch.models.generator import rfb
 
-model = esrgan16(pretrained=True)
+model = rfb(pretrained=True)
 print(model)

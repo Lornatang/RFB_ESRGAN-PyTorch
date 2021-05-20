@@ -85,7 +85,7 @@ optional arguments:
   --pretrained          Use pre-trained model.
   --seed SEED           Seed for initializing training. (Default: 666)
   --gpu GPU             GPU id to use.
-       
+    
 # Example
 $ python3 test_benchmark.py -a rfb --pretrained --gpu 0 [image-folder with train and val folders]
 ```
@@ -166,7 +166,7 @@ Low resolution / Recovered High Resolution / Ground Truth
 
 ```text
 usage: train.py [-h] [-a ARCH] [-j N] [--psnr-epochs N] [--start-psnr-epoch N] [--gan-epochs N] [--start-gan-epoch N] [-b N] [--sampler-frequency N] [--psnr-lr PSNR_LR] [--gan-lr GAN_LR] [--image-size IMAGE_SIZE] [--upscale-factor {4,16}]
-                [--model-path PATH] [--resume_psnr PATH] [--resume_d PATH] [--resume_g PATH] [--pretrained] [--world-size WORLD_SIZE] [--rank RANK] [--dist-url DIST_URL] [--dist-backend DIST_BACKEND] [--seed SEED] [--gpu GPU]
+                [--model-path PATH] [--resume-psnr PATH] [--resume-d PATH] [--resume-g PATH] [--pretrained] [--world-size WORLD_SIZE] [--rank RANK] [--dist-url DIST_URL] [--dist-backend DIST_BACKEND] [--seed SEED] [--gpu GPU]
                 [--multiprocessing-distributed]
                 DIR
 
@@ -179,23 +179,23 @@ optional arguments:
   -h, --help            show this help message and exit
   -a ARCH, --arch ARCH  Model architecture: rfb | rfb_4x4. (Default: `rfb`)
   -j N, --workers N     Number of data loading workers. (Default: 4)
-  --psnr-epochs N       Number of total psnr epochs to run. (Default: 4630)
+  --psnr-epochs N       Number of total psnr epochs to run. (Default: 1435)
   --start-psnr-epoch N  Manual psnr epoch number (useful on restarts). (Default: 0)
-  --gan-epochs N        Number of total gan epochs to run. (Default: 1852)
+  --gan-epochs N        Number of total gan epochs to run. (Default: 574)
   --start-gan-epoch N   Manual gan epoch number (useful on restarts). (Default: 0)
   -b N, --batch-size N  Mini-batch size (default: 16), this is the total batch size of all GPUs on the current node when using Data Parallel or Distributed Data Parallel.
   --sampler-frequency N
                         If there are many datasets, this method can be used to increase the number of epochs. (Default:1)
-  --psnr-lr PSNR_LR     Learning rate for psnr-oral. (Default: 0.0001)
+  --psnr-lr PSNR_LR     Learning rate for psnr-oral. (Default: 0.0002)
   --gan-lr GAN_LR       Learning rate for gan-oral. (Default: 0.0001)
   --image-size IMAGE_SIZE
                         Image size of high resolution image. (Default: 512)
   --upscale-factor {4,16}
                         Low to high resolution scaling factor. Optional: [4, 16]. (Default: 16)
   --model-path PATH     Path to latest checkpoint for model.
-  --resume_psnr PATH    Path to latest psnr-oral checkpoint.
-  --resume_d PATH       Path to latest -oral checkpoint.
-  --resume_g PATH       Path to latest psnr-oral checkpoint.
+  --resume-psnr PATH    Path to latest psnr-oral checkpoint.
+  --resume-d PATH       Path to latest -oral checkpoint.
+  --resume-g PATH       Path to latest psnr-oral checkpoint.
   --pretrained          Use pre-trained model.
   --world-size WORLD_SIZE
                         Number of nodes for distributed training.
@@ -207,7 +207,7 @@ optional arguments:
   --gpu GPU             GPU id to use.
   --multiprocessing-distributed
                         Use multi-processing distributed training to launch N processes per node, which has N GPUs. This is the fastest way to use PyTorch for either single node or multi node data parallel training.
-                        
+               
 # Example (e.g DIV2K)
 $ python3 train.py -a srgan [image-folder with train and val folders]
 # Multi-processing Distributed Data Parallel Training

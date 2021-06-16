@@ -14,7 +14,7 @@
 """File for accessing GAN via PyTorch Hub https://pytorch.org/hub/
 Usage:
     import torch
-    model = torch.hub.load("Lornatang/RFB_ESRGAN-PyTorch", "rfb", pretrained=True, progress=True, verbose=False)
+    model = torch.hub.load("Lornatang/RFB_ESRGAN-PyTorch", "rfb_esrgan", pretrained=True, progress=True, verbose=False)
 """
 import torch
 from torch.hub import load_state_dict_from_url
@@ -22,36 +22,25 @@ from torch.hub import load_state_dict_from_url
 from rfb_esrgan_pytorch.models.generator import Generator
 
 model_urls = {
-    "rfb_4x4": None,
-    "rfb": None
+    "rfb_esrgan": None
 }
 
 dependencies = ["torch"]
 
 
-def _gan(arch: str, upscale_factor: int, pretrained: bool, progress: bool) -> Generator:
-    model = Generator(upscale_factor)
+def _gan(arch: str, pretrained: bool, progress: bool) -> Generator:
+    model = Generator()
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch], progress=progress, map_location=torch.device("cpu"))
         model.load_state_dict(state_dict)
     return model
 
 
-def rfb_4x4(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the `"One weird trick..." <https://arxiv.org/abs/2005.12597>` paper.
+def rfb_esrgan(pretrained: bool = False, progress: bool = True) -> Generator:
+    r"""GAN model architecture from `<https://arxiv.org/pdf/2005.12597.pdf>` paper.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _gan("rfb_4x4", 4, pretrained, progress)
-
-
-def rfb(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the `"One weird trick..." <https://arxiv.org/abs/2005.12597>` paper.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    return _gan("rfb", 16, pretrained, progress)
+    return _gan("rfb_esrgan", pretrained, progress)

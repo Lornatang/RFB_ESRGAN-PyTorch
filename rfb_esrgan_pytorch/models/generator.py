@@ -11,8 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-import math
-
 import torch
 import torch.nn as nn
 from torch.hub import load_state_dict_from_url
@@ -23,44 +21,37 @@ from .utils import ResidualOfReceptiveFieldDenseBlock
 from .utils import SubpixelConvolutionLayer
 
 model_urls = {
-    "rfb_4x4": None,
-    "rfb": None
+    "rfb_esrgan": None
 }
 
 
 class Generator(nn.Module):
-    def __init__(self, upscale_factor: int = 16) -> None:
-        r"""
-        Args:
-            upscale_factor (int): How many times to upscale the picture. (Default: 16)
-        """
+    def __init__(self) -> None:
         super(Generator, self).__init__()
-        # Calculating the number of subpixel convolution layers.
-        num_subpixel_convolution_layers = int(math.log(upscale_factor, 4))
-
         # First layer
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1)
 
         # 16 ResidualInResidualDenseBlock layer.
         residual_residual_dense_blocks = []
         for _ in range(16):
-            residual_residual_dense_blocks += [ResidualInResidualDenseBlock(channels=64, growth_channels=32)]
+            residual_residual_dense_blocks += [ResidualInResidualDenseBlock(64, 32, 0.2)]
         self.Trunk_a = nn.Sequential(*residual_residual_dense_blocks)
 
         # 8 ResidualOfReceptiveFieldDenseBlock layer.
         residual_residual_fields_dense_blocks = []
         for _ in range(8):
-            residual_residual_fields_dense_blocks += [ResidualOfReceptiveFieldDenseBlock(channels=64, growth_channels=32)]
+            residual_residual_fields_dense_blocks += [
+                ResidualOfReceptiveFieldDenseBlock(64, 32, 0.1)]
         self.Trunk_RFB = nn.Sequential(*residual_residual_fields_dense_blocks)
 
         # Second conv layer post residual field blocks
-        self.RFB = ReceptiveFieldBlock(64, 64)
+        self.RFB = ReceptiveFieldBlock(64, 64, 0.1)
 
         # Sub-pixel convolution layers.
-        subpixel_conv_layers = []
-        for _ in range(num_subpixel_convolution_layers):
-            subpixel_conv_layers.append(SubpixelConvolutionLayer(channels=64))
-        self.subpixel_conv = nn.Sequential(*subpixel_conv_layers)
+        self.subpixel_conv = nn.Sequential(
+            SubpixelConvolutionLayer(64),
+            SubpixelConvolutionLayer(64)
+        )
 
         # Next conv layer
         self.conv2 = nn.Sequential(
@@ -94,29 +85,19 @@ class Generator(nn.Module):
         return out
 
 
-def _gan(arch: str, upscale_factor: int, pretrained: bool, progress: bool) -> Generator:
-    model = Generator(upscale_factor)
+def _gan(arch: str, pretrained: bool, progress: bool) -> Generator:
+    model = Generator()
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch], progress=progress, map_location=torch.device("cpu"))
         model.load_state_dict(state_dict)
     return model
 
 
-def rfb_4x4(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the `"One weird trick..." <https://arxiv.org/abs/2005.12597>` paper.
+def rfb_esrgan(pretrained: bool = False, progress: bool = True) -> Generator:
+    r"""GAN model architecture from `<https://arxiv.org/pdf/2005.12597.pdf>` paper.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _gan("rfb_4x4", 4, pretrained, progress)
-
-
-def rfb(pretrained: bool = False, progress: bool = True) -> Generator:
-    r"""GAN model architecture from the `"One weird trick..." <https://arxiv.org/abs/2005.12597>` paper.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-    """
-    return _gan("rfb", 16, pretrained, progress)
+    return _gan("rfb_esrgan", pretrained, progress)

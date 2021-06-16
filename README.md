@@ -141,7 +141,6 @@ $ python3 test_video.py -a rfb --file [path-to-video] --pretrained --gpu 0 --vie
 |      Model      | Params |  FLOPs | CPU Speed | GPU Speed |
 |:---------------:|:------:|:------:|:---------:|:---------:|
 |       rfb       | 21.50M | 100.7G |    665ms  |    150ms  |
-|     rfb_4x4     | 21.31M | 46.7G  |    354ms  |    144ms  |
 
 ```text
 usage: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network. [-h] [-i IMAGE_SIZE] [--gpu GPU]

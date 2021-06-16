@@ -22,12 +22,15 @@ __all__ = [
 
 
 class ResidualDenseBlock(nn.Module):
-    def __init__(self, channels: int = 64, growth_channels: int = 32):
-        r"""
-        Args:
-            channels (int): Number of channels in the input image. (Default: 64)
-            growth_channels (int): how many filters to add each layer (`k` in paper). (Default: 32)
-        """
+    r"""
+
+    Args:
+        channels (int): Number of channels in the input image. (Default: 64)
+        growth_channels (int): how many filters to add each layer (`k` in paper). (Default: 32)
+        scale_ratio (float): Residual channel scaling column. (Default: 0.2)
+    """
+
+    def __init__(self, channels: int = 64, growth_channels: int = 32, scale_ratio: float = 0.2):
         super(ResidualDenseBlock, self).__init__()
         self.conv1 = nn.Sequential(
             nn.Conv2d(channels + 0 * growth_channels, growth_channels, kernel_size=3, stride=1, padding=1),
@@ -51,6 +54,8 @@ class ResidualDenseBlock(nn.Module):
 
         self.conv5 = nn.Conv2d(channels + 4 * growth_channels, channels, kernel_size=3, stride=1, padding=1)
 
+        self.scale_ratio = scale_ratio
+
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight)
@@ -65,40 +70,48 @@ class ResidualDenseBlock(nn.Module):
         conv4 = self.conv4(torch.cat((x, conv1, conv2, conv3), dim=1))
         conv5 = self.conv5(torch.cat((x, conv1, conv2, conv3, conv4), dim=1))
 
-        out = torch.add(conv5 * 0.2, x)
+        out = torch.add(conv5 * self.scale_ratio, x)
 
         return out
 
 
 class ResidualInResidualDenseBlock(nn.Module):
-    def __init__(self, channels: int = 64, growth_channels: int = 32):
-        r"""
-        Args:
-            channels (int): Number of channels in the input image. (Default: 64)
-            growth_channels (int): how many filters to add each layer (`k` in paper). (Default: 32)
-        """
+    r"""
+
+    Args:
+        channels (int): Number of channels in the input image. (Default: 64)
+        growth_channels (int): how many filters to add each layer (`k` in paper). (Default: 32)
+        scale_ratio (float): Residual channel scaling column. (Default: 0.2)
+    """
+
+    def __init__(self, channels: int = 64, growth_channels: int = 32, scale_ratio: float = 0.2):
         super(ResidualInResidualDenseBlock, self).__init__()
         self.RDB1 = ResidualDenseBlock(channels, growth_channels)
         self.RDB2 = ResidualDenseBlock(channels, growth_channels)
         self.RDB3 = ResidualDenseBlock(channels, growth_channels)
+
+        self.scale_ratio = scale_ratio
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = self.RDB1(x)
         out = self.RDB2(out)
         out = self.RDB3(out)
 
-        out = torch.add(out * 0.2, x)
+        out = torch.add(out * self.scale_ratio, x)
 
         return out
 
 
 class ReceptiveFieldBlock(nn.Module):
-    def __init__(self, in_channels: int = 64, out_channels: int = 64):
-        r""" Modules introduced in RFBNet paper.
-        Args:
-            in_channels (int): Number of channels in the input image. (Default: 64)
-            out_channels (int): Number of channels produced by the convolution. (Default: 64)
-        """
+    r"""
+
+    Args:
+        in_channels (int): Number of channels in the input image. (Default: 64)
+        out_channels (int): Number of channels produced by the convolution. (Default: 64)
+        scale_ratio (float): Residual channel scaling column. (Default: 0.1)
+    """
+
+    def __init__(self, in_channels: int = 64, out_channels: int = 64, scale_ratio: float = 0.1):
         super(ReceptiveFieldBlock, self).__init__()
         branch_channels = in_channels // 4
 
@@ -140,6 +153,8 @@ class ReceptiveFieldBlock(nn.Module):
         self.conv_linear = nn.Conv2d(4 * branch_channels, out_channels, kernel_size=1, stride=1, padding=0)
         self.leaky_relu = nn.LeakyReLU(negative_slope=0.2, inplace=False)
 
+        self.scale_ratio = scale_ratio
+
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight)
@@ -158,7 +173,7 @@ class ReceptiveFieldBlock(nn.Module):
         out = torch.cat((branch1, branch2, branch3, branch4), dim=1)
         out = self.conv_linear(out)
 
-        out = self.leaky_relu(torch.add(out * 0.1, shortcut))
+        out = self.leaky_relu(torch.add(out * self.scale_ratio, shortcut))
 
         return out
 
@@ -167,14 +182,14 @@ class ReceptiveFieldBlock(nn.Module):
 class ReceptiveFieldDenseBlock(nn.Module):
     r""" Inspired by the multi-scale kernels and the structure of Receptive Fields (RFs) in human visual systems,
         RFB-SSD proposed Receptive Fields Block (RFB) for object detection
+
+    Args:
+        channels (int): Number of channels in the input image. (Default: 64)
+        growth_channels (int): how many filters to add each layer (`k` in paper). (Default: 32)
+        scale_ratio (float): Residual channel scaling column. (Default: 0.1)
     """
 
-    def __init__(self, channels: int = 64, growth_channels: int = 32):
-        r"""
-        Args:
-            channels (int): Number of channels in the input image. (Default: 64)
-            growth_channels (int): how many filters to add each layer (`k` in paper). (Default: 32)
-        """
+    def __init__(self, channels: int = 64, growth_channels: int = 32, scale_ratio: float = 0.1):
         super(ReceptiveFieldDenseBlock, self).__init__()
         self.rfb1 = nn.Sequential(
             ReceptiveFieldBlock(channels + 0 * growth_channels, growth_channels),
@@ -198,6 +213,8 @@ class ReceptiveFieldDenseBlock(nn.Module):
 
         self.rfb5 = ReceptiveFieldBlock(channels + 4 * growth_channels, channels)
 
+        self.scale_ratio = scale_ratio
+
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight)
@@ -212,42 +229,47 @@ class ReceptiveFieldDenseBlock(nn.Module):
         rfb4 = self.rfb4(torch.cat((x, rfb1, rfb2, rfb3), dim=1))
         rfb5 = self.rfb5(torch.cat((x, rfb1, rfb2, rfb3, rfb4), dim=1))
 
-        out = torch.add(rfb5 * 0.1, x)
+        out = torch.add(rfb5 * self.scale_ratio, x)
 
         return out
 
 
 # Source code reference from `https://arxiv.org/pdf/2005.12597.pdf`.
 class ResidualOfReceptiveFieldDenseBlock(nn.Module):
-    r"""The residual block structure of traditional RFB-ESRGAN is defined"""
+    r"""The residual block structure of traditional RFB-ESRGAN is defined
 
-    def __init__(self, channels: int = 64, growth_channels: int = 32):
-        r"""
-        Args:
-            channels (int): Number of channels in the input image. (Default: 64)
-            growth_channels (int): how many filters to add each layer (`k` in paper). (Default: 32)
-        """
+    Args:
+        channels (int): Number of channels in the input image. (Default: 64)
+        growth_channels (int): how many filters to add each layer (`k` in paper). (Default: 32)
+        scale_ratio (float): Residual channel scaling column. (Default: 0.1)
+    """
+
+    def __init__(self, channels: int = 64, growth_channels: int = 32, scale_ratio: float = 0.1):
         super(ResidualOfReceptiveFieldDenseBlock, self).__init__()
         self.RFDB1 = ReceptiveFieldDenseBlock(channels, growth_channels)
         self.RFDB2 = ReceptiveFieldDenseBlock(channels, growth_channels)
         self.RFDB3 = ReceptiveFieldDenseBlock(channels, growth_channels)
+
+        self.scale_ratio = scale_ratio
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = self.RFDB1(x)
         out = self.RFDB1(out)
         out = self.RFDB1(out)
 
-        out = torch.add(out * 0.1, x)
+        out = torch.add(out * self.scale_ratio, x)
 
         return out
 
 
 class SubpixelConvolutionLayer(nn.Module):
+    r"""
+
+    Args:
+        channels (int): Number of channels in the input image. (Default: 64)
+    """
+
     def __init__(self, channels: int = 64) -> None:
-        r"""
-        Args:
-            channels (int): Number of channels in the input image. (Default: 64)
-        """
         super(SubpixelConvolutionLayer, self).__init__()
         self.upsample = nn.Upsample(scale_factor=2, mode="nearest")
         self.rfb1 = ReceptiveFieldBlock(channels, channels)

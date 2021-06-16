@@ -121,10 +121,10 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--arch", default="esrgan16", type=str, choices=model_names,
+    parser.add_argument("--arch", default="rfb_esrgan", type=str, choices=model_names,
                         help="Model architecture: " +
                              " | ".join(model_names) +
-                             ". (Default: `esrgan16`)")
+                             ". (Default: `rfb_esrgan`)")
     parser.add_argument("--lr", type=str, required=True,
                         help="Test low resolution image name.")
     parser.add_argument("--hr", type=str,

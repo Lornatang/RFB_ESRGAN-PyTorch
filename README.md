@@ -24,8 +24,8 @@ This repository contains an op-for-op PyTorch reimplementation of [Perceptual Ex
 
 ## Download weights
 
-- [Google Driver](https://drive.google.com/drive/folders/1PbvPyhbhTUXmuMn7eRwDGupOA-qoyjbp?usp=sharing)
-- [Baidu Driver](https://pan.baidu.com/s/1UbOacCc6i8nbxEmLzkFtjQ?pwd=llot) access:`llot`
+- [Google Driver (coming soon)]()
+- [Baidu Driver (coming soon)]() access:``
 
 ## Download datasets
 
@@ -62,7 +62,7 @@ Modify the contents of the file as follows.
 
 - line 28: `upscale_factor` change to the magnification you need to enlarge.
 - line 30: `mode` change Set to valid mode.
-- line 119: `model_path` change weight address after training.
+- line 110: `model_path` change weight address after training.
 
 ## Train
 
@@ -73,20 +73,20 @@ Modify the contents of the file as follows.
 
 If you want to load weights that you've trained before, modify the contents of the file as follows.
 
-### Train RRDBNet model
+### Train RFBNet model
 
-- line 47: `resume` change to `True`.
-- line 48: `strict` Transfer learning is set to `False`, incremental learning is set to `True`.
-- line 49: `start_epoch` change number of training iterations in the previous round.
-- line 50: `resume_weight` the weight address that needs to be loaded.
+- line 44: `resume` change to `True`.
+- line 45: `strict` Transfer learning is set to `False`, incremental learning is set to `True`.
+- line 46: `start_epoch` change number of training iterations in the previous round.
+- line 47: `resume_weight` the weight address that needs to be loaded.
 
-### Train ESRGAN model
+### Train RFB_ESRGAN model
 
-- line 79: `resume` change to `True`.
-- line 80: `strict` Transfer learning is set to `False`, incremental learning is set to `True`.
-- line 81: `start_epoch` change number of training iterations in the previous round.
-- line 82: `resume_d_weight` the discriminator weight address that needs to be loaded.
-- line 83: `resume_g_weight` the generator weight address that needs to be loaded.
+- line 73: `resume` change to `True`.
+- line 74: `strict` Transfer learning is set to `False`, incremental learning is set to `True`.
+- line 75: `start_epoch` change number of training iterations in the previous round.
+- line 76: `resume_d_weight` the discriminator weight address that needs to be loaded.
+- line 77: `resume_g_weight` the generator weight address that needs to be loaded.
 
 ### Result
 
@@ -96,8 +96,8 @@ In the following table, the value in `()` indicates the result of the project, a
 
 | Dataset | Scale | RFBNet (PSNR) | RFB_ESRGAN (PSNR) |
 |:-------:|:-----:|:-------------:|:-----------------:|
-|  Set5   |  16   |   -(**-**)    |   -(**29.45**)    |
-|  Set14  |  16   |   -(**-**)    |   -(**25.88**)    |
+|  Set5   |  16   |   -(**-**)    |     -(**-**)      |
+|  Set14  |  16   |   -(**-**)    |     -(**-**)      |
 
 Low resolution / Recovered High Resolution / Ground Truth
 <span align="center"><img src="assets/result.png"/></span>

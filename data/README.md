@@ -4,10 +4,10 @@
 
 ### Download train dataset
 
-#### DFO2K
+#### DIV8K
 
 - Image format
-    - [Baidu Driver](https://pan.baidu.com/s/1RwQ_x6_CEJpfmh9IT8EJIA?pwd=llot) access: `llot`
+    - [Baidu Driver](https://pan.baidu.com/s/1e4MKBPV5535JMaIp8x1peg?pwd=llot) access: `llot`
 
 ### Download valid dataset
 
@@ -34,7 +34,7 @@
 ### Image format
 
 ```text
-- DFO2K
+- DIV8K
     - RFB_ESRGAN
         - train    
         - valid

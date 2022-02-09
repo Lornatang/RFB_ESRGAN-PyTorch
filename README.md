@@ -95,10 +95,10 @@ Source of original paper results: [https://arxiv.org/pdf/2005.12597v1.pdf](https
 
 In the following table, the value in `()` indicates the result of the project, and `-` indicates no test.
 
-| Dataset | Scale | RRDBNet (PSNR) | ESRGAN (PSNR) |
-|:-------:|:-----:|:--------------:|:-------------:|
-|  Set5   |  16   |    -(**-**)    | -(**29.45**)  |
-|  Set14  |  16   |    -(**-**)    | -(**25.88**)  |
+| Dataset | Scale | RFBNet (PSNR) | RFB_ESRGAN (PSNR) |
+|:-------:|:-----:|:-------------:|:-----------------:|
+|  Set5   |  16   |   -(**-**)    |   -(**29.45**)    |
+|  Set14  |  16   |   -(**-**)    |   -(**25.88**)    |
 
 Low resolution / Recovered High Resolution / Ground Truth
 <span align="center"><img src="assets/result.png"/></span>

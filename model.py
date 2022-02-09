@@ -46,13 +46,18 @@ class ResidualDenseBlock(nn.Module):
         self.identity = nn.Identity()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        identity = x
+
         out1 = self.leaky_relu(self.conv1(x))
         out2 = self.leaky_relu(self.conv2(torch.cat([x, out1], 1)))
         out3 = self.leaky_relu(self.conv3(torch.cat([x, out1, out2], 1)))
         out4 = self.leaky_relu(self.conv4(torch.cat([x, out1, out2, out3], 1)))
         out5 = self.identity(self.conv5(torch.cat([x, out1, out2, out3, out4], 1)))
 
-        return out5
+        out = torch.mul(out5, 0.2)
+        out = torch.add(out, identity)
+
+        return out
 
 
 class ResidualInResidualDenseBlock(nn.Module):
@@ -70,19 +75,16 @@ class ResidualInResidualDenseBlock(nn.Module):
         self.rdb3 = ResidualDenseBlock(channels, growths)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        rdb1 = self.rdb1(x)
-        out1 = torch.mul(rdb1, 0.2)
-        out1 = torch.add(out1, x)
+        identity = x
 
-        rdb2 = self.rdb2(out1)
-        out2 = torch.mul(rdb2, 0.2)
-        out2 = torch.add(out2, out1)
+        out = self.rdb1(x)
+        out = self.rdb2(out)
+        out = self.rdb3(out)
 
-        rdb3 = self.rdb3(out2)
-        out3 = torch.mul(rdb3, 0.2)
-        out3 = torch.add(out3, out2)
+        out = torch.mul(out, 0.2)
+        out = torch.add(out, identity)
 
-        return out3
+        return out
 
 
 class ReceptiveFieldBlock(nn.Module):
@@ -175,13 +177,18 @@ class ReceptiveFieldDenseBlock(nn.Module):
         self.identity = nn.Identity()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        identity = x
+
         rfb1 = self.leaky_relu(self.rfb1(x))
         rfb2 = self.leaky_relu(self.rfb2(torch.cat([x, rfb1], 1)))
         rfb3 = self.leaky_relu(self.rfb3(torch.cat([x, rfb1, rfb2], 1)))
         rfb4 = self.leaky_relu(self.rfb4(torch.cat([x, rfb1, rfb2, rfb3], 1)))
         rfb5 = self.identity(self.rfb5(torch.cat([x, rfb1, rfb2, rfb3, rfb4], 1)))
 
-        return rfb5
+        out = torch.mul(rfb5, 0.2)
+        out = torch.add(out, identity)
+
+        return out
 
 
 # Source code reference from `https://arxiv.org/pdf/2005.12597.pdf`.
@@ -193,19 +200,15 @@ class ResidualOfReceptiveFieldDenseBlock(nn.Module):
         self.rfdb3 = ReceptiveFieldDenseBlock(channels, growths)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        rfdb1 = self.rfdb1(x)
-        out1 = torch.mul(rfdb1, 0.2)
-        out1 = torch.add(out1, x)
+        identity = x
 
-        rfdb2 = self.rfdb2(out1)
-        out2 = torch.mul(rfdb2, 0.2)
-        out2 = torch.add(out2, out1)
+        out = self.rfdb1(x)
+        out = self.rfdb2(out)
+        out = self.rfdb3(out)
+        out = torch.mul(out, 0.2)
+        out = torch.add(out, identity)
 
-        rfdb3 = self.rfdb3(out2)
-        out3 = torch.mul(rfdb3, 0.2)
-        out3 = torch.add(out3, out2)
-
-        return out3
+        return out
 
 
 class UpsamplingModule(nn.Module):

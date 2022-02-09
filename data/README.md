@@ -7,7 +7,7 @@
 #### DIV8K
 
 - Image format
-    - [Baidu Driver](https://pan.baidu.com/s/1e4MKBPV5535JMaIp8x1peg?pwd=llot) access: `llot`
+    - [Baidu Driver](https://pan.baidu.com/s/1DltVSJtzNmIlnyPxp5W4iQ?pwd=llot) access: `llot`
 
 ### Download valid dataset
 

@@ -2,8 +2,7 @@
 
 ## Overview
 
-This repository contains an op-for-op PyTorch reimplementation
-of [Perceptual Extreme Super Resolution Network with Receptive Field Block](https://arxiv.org/abs/2005.12597v1).
+This repository contains an op-for-op PyTorch reimplementation of [Perceptual Extreme Super Resolution Network with Receptive Field Block](https://arxiv.org/abs/2005.12597v1).
 
 ## Table of contents
 
@@ -32,10 +31,10 @@ of [Perceptual Extreme Super Resolution Network with Receptive Field Block](http
 
 ### Download train dataset
 
-#### DFO2K
+#### DIV8K
 
 - Image format
-    - [Baidu Driver](https://pan.baidu.com/s/1RwQ_x6_CEJpfmh9IT8EJIA?pwd=llot) access: `llot`
+    - [Baidu Driver](https://pan.baidu.com/s/1e4MKBPV5535JMaIp8x1peg?pwd=llot) access: `llot`
 
 ### Download valid dataset
 

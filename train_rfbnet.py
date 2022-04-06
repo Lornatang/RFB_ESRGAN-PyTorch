@@ -108,9 +108,9 @@ def load_dataset() -> [DataLoader, DataLoader]:
                                   pin_memory=True,
                                   persistent_workers=True)
     valid_dataloader = DataLoader(valid_datasets,
-                                  batch_size=config.batch_size,
+                                  batch_size=1,
                                   shuffle=False,
-                                  num_workers=config.num_workers,
+                                  num_workers=1,
                                   pin_memory=True,
                                   persistent_workers=True)
 

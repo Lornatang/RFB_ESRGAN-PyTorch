@@ -11,12 +11,10 @@ This repository contains an op-for-op PyTorch reimplementation of [Perceptual Ex
     - [Table of contents](#table-of-contents)
     - [Download weights](#download-weights)
     - [Download datasets](#download-datasets)
-        - [Download train dataset](#download-train-dataset)
-        - [Download valid dataset](#download-valid-dataset)
     - [Test](#test)
     - [Train](#train)
-        - [Train RRDBNet model](#train-rrdbnet-model)
-        - [Train ESRGAN model](#train-esrgan-model)
+        - [Train RFBESRNet model](#train-rfbesrnet-model)
+        - [Train RFBESRGAN model](#train-rfbesrgan-model)
     - [Result](#result)
     - [Contributing](#contributing)
     - [Credit](#credit)
@@ -24,69 +22,44 @@ This repository contains an op-for-op PyTorch reimplementation of [Perceptual Ex
 
 ## Download weights
 
-- [Google Driver (coming soon)]()
-- [Baidu Driver (coming soon)]() access:``
+- [Google Driver](https://drive.google.com/drive/folders/17ju2HN7Y6pyPK2CC_AqnAfTOe9_3hCQ8?usp=sharing)
+- [Baidu Driver](https://pan.baidu.com/s/1yNs4rqIb004-NKEdKBJtYg?pwd=llot)
 
 ## Download datasets
 
-### Download train dataset
+Contains DIV2K, DIV8K, Flickr2K, OST, T91, Set5, Set14, BSDS100 and BSDS200, etc.
 
-#### DIV8K
-
-- Image format
-    - [Baidu Driver](https://pan.baidu.com/s/1DltVSJtzNmIlnyPxp5W4iQ?pwd=llot) access: `llot`
-
-### Download valid dataset
-
-#### Set5
-
-- Image format
-    - [Google Driver](https://drive.google.com/file/d/1GtQuoEN78q3AIP8vkh-17X90thYp_FfU/view?usp=sharing)
-    - [Baidu Driver](https://pan.baidu.com/s/1dlPcpwRPUBOnxlfW5--S5g) access:`llot`
-
-#### Set14
-
-- Image format
-    - [Google Driver](https://drive.google.com/file/d/1CzwwAtLSW9sog3acXj8s7Hg3S7kr2HiZ/view?usp=sharing)
-    - [Baidu Driver](https://pan.baidu.com/s/1KBS38UAjM7bJ_e6a54eHaA) access:`llot`
-
-#### BSD200
-
-- Image format
-    - [Google Driver](https://drive.google.com/file/d/1cdMYTPr77RdOgyAvJPMQqaJHWrD5ma5n/view?usp=sharing)
-    - [Baidu Driver](https://pan.baidu.com/s/1xahPw4dNNc3XspMMOuw1Bw) access:`llot`
+- [Google Driver](https://drive.google.com/drive/folders/1A6lzGeQrFMxPqJehK9s37ce-tPDj20mD?usp=sharing)
+- [Baidu Driver](https://pan.baidu.com/s/1o-8Ty_7q6DiS3ykLU09IVg?pwd=llot)
 
 ## Test
 
-Modify the contents of the file as follows.
+Modify the contents of the `config.py` file as follows.
 
-- line 28: `upscale_factor` change to the magnification you need to enlarge.
-- line 30: `mode` change Set to valid mode.
+- line 30: `upscale_factor` change to the magnification you need to enlarge.
+- line 32: `mode` change Set to valid mode.
 - line 110: `model_path` change weight address after training.
 
 ## Train
 
-Modify the contents of the file as follows.
+Modify the contents of the `config.py` file as follows.
 
-- line 28: `upscale_factor` change to the magnification you need to enlarge.
-- line 30: `mode` change Set to train mode.
+- line 30: `upscale_factor` change to the magnification you need to enlarge.
+- line 32: `mode` change Set to train mode.
 
 If you want to load weights that you've trained before, modify the contents of the file as follows.
 
-### Train RFBNet model
+### Train RFBESRNet model
 
-- line 44: `resume` change to `True`.
-- line 45: `strict` Transfer learning is set to `False`, incremental learning is set to `True`.
-- line 46: `start_epoch` change number of training iterations in the previous round.
-- line 47: `resume_weight` the weight address that needs to be loaded.
+- line 48: `start_epoch` change number of RFB_ESRNet training iterations in the previous round.
+- line 49: `resume` change to RFB_ESRNet weight address that needs to be loaded.
 
-### Train RFB_ESRGAN model
+### Train RFBESRGAN model
 
-- line 73: `resume` change to `True`.
-- line 74: `strict` Transfer learning is set to `False`, incremental learning is set to `True`.
-- line 75: `start_epoch` change number of training iterations in the previous round.
-- line 76: `resume_d_weight` the discriminator weight address that needs to be loaded.
-- line 77: `resume_g_weight` the generator weight address that needs to be loaded.
+- line 76: `start_epoch` change number of RFB_ESRGAN training iterations in the previous round.
+- line 77: `resume` change to RFB_ESRNet weight address that needs to be loaded.
+- line 78: `resume_d` change to Discriminator weight address that needs to be loaded.
+- line 79: `resume_g` change to Generator weight address that needs to be loaded.
 
 ### Result
 

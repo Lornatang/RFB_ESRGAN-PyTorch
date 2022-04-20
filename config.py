@@ -49,7 +49,7 @@ if mode == "train_rfbesrnet":
     resume = ""
 
     # Total num epochs
-    epochs = 1334
+    epochs = 1300
 
     # Optimizer parameter
     model_lr = 2e-4
@@ -79,7 +79,7 @@ if mode == "train_rfbesrgan":
     resume_g = ""
 
     # Total num epochs
-    epochs = 534
+    epochs = 532
 
     # Feature extraction layer parameter configuration
     feature_model_extractor_node = "features.34"

@@ -38,7 +38,7 @@ if mode == "train_rfbesrnet":
     train_image_dir = "data/DIV2K/RFB_ESRGAN/train"
     valid_image_dir = "data/DIV2K/RFB_ESRGAN/valid"
     test_lr_image_dir = f"data/Set5/LRbicx{upscale_factor}"
-    test_hr_image_dir = f"data/Set5/GTmod12"
+    test_hr_image_dir = f"data/Set5/GTmod16"
 
     image_size = 512
     batch_size = 16
@@ -66,7 +66,7 @@ if mode == "train_rfbesrgan":
     train_image_dir = "data/DIV2K/RFB_ESRGAN/train"
     valid_image_dir = "data/DIV2K/RFB_ESRGAN/valid"
     test_lr_image_dir = f"data/Set5/LRbicx{upscale_factor}"
-    test_hr_image_dir = f"data/Set5/GTmod12"
+    test_hr_image_dir = f"data/Set5/GTmod16"
 
     image_size = 512
     batch_size = 16
@@ -105,6 +105,6 @@ if mode == "valid":
     # Test data address
     lr_dir = f"data/Set5/LRbicx{upscale_factor}"
     sr_dir = f"results/test/{exp_name}"
-    hr_dir = f"data/Set5/GTmod12"
+    hr_dir = f"data/Set5/GTmod16"
 
     model_path = f"results/{exp_name}/g_last.pth.tar"

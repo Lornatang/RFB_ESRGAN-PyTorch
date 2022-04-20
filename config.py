@@ -1,4 +1,4 @@
-# Copyright 2021 Dakewe Biotech Corporation. All Rights Reserved.
+# Copyright 2022 Dakewe Biotech Corporation. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -12,14 +12,16 @@
 # limitations under the License.
 # ==============================================================================
 """Realize the parameter configuration function of dataset, model, training and verification code."""
+import random
+
+import numpy as np
 import torch
 from torch.backends import cudnn
 
-# ==============================================================================
-# General configuration
-# ==============================================================================
 # Random seed to maintain reproducible results
+random.seed(0)
 torch.manual_seed(0)
+np.random.seed(0)
 # Use GPU for training by default
 device = torch.device("cuda", 0)
 # Turning on when the image size does not change during training can speed up training
@@ -27,93 +29,82 @@ cudnn.benchmark = True
 # Image magnification factor
 upscale_factor = 16
 # Current configuration parameter method
-mode = "train_rfbnet"
+mode = "train_rfbesrnet"
 # Experiment name, easy to save weights and log files
-exp_name = "Train_RFBNet_baseline"
+exp_name = "RFBESRNet_baseline"
 
-# ==============================================================================
-# Training RRDBNet model configuration
-# ==============================================================================
-if mode == "train_rfbnet":
+if mode == "train_rfbesrnet":
     # Dataset address
-    train_image_dir = "data/DFO2K/RFB_ESRGAN/train"
-    valid_image_dir = "data/DFO2K/RFB_ESRGAN/valid"
+    train_image_dir = "data/DIV2K/RFB_ESRGAN/train"
+    valid_image_dir = "data/DIV2K/RFB_ESRGAN/valid"
+    test_lr_image_dir = f"data/Set5/LRbicx{upscale_factor}"
+    test_hr_image_dir = f"data/Set5/GTmod12"
 
     image_size = 512
     batch_size = 16
     num_workers = 4
 
     # Incremental training and migration training
-    resume = False
-    strict = False
     start_epoch = 0
-    resume_weight = ""
+    resume = ""
 
     # Total num epochs
-    epochs = 300
+    epochs = 1334
 
-    # Adam optimizer parameter for RRDBNet(p)
+    # Optimizer parameter
     model_lr = 2e-4
     model_betas = (0.9, 0.99)
 
-    # StepLR scheduler
-    step_size = epochs // 4
-    gamma = 0.5
+    # LR scheduler
+    lr_scheduler_step_size = epochs // 4
+    lr_scheduler_gamma = 0.5
 
-    # Print the training log every one hundred iterations
-    print_frequency = 500
+    print_frequency = 100
 
-# ==============================================================================
-# Training RFB_ESRGAN model configuration
-# ==============================================================================
-if mode == "train_rfb_esrgan":
+if mode == "train_rfbesrgan":
     # Dataset address
-    train_image_dir = "data/DFO2K/RFB_ESRGAN/train"
-    valid_image_dir = "data/DFO2K/RFB_ESRGAN/valid"
+    train_image_dir = "data/DIV2K/RFB_ESRGAN/train"
+    valid_image_dir = "data/DIV2K/RFB_ESRGAN/valid"
+    test_lr_image_dir = f"data/Set5/LRbicx{upscale_factor}"
+    test_hr_image_dir = f"data/Set5/GTmod12"
 
     image_size = 512
     batch_size = 16
     num_workers = 4
 
     # Incremental training and migration training
-    resume = True
-    strict = False
     start_epoch = 0
-    resume_d_weight = ""
-    resume_g_weight = "results/Train_RFBNet_baseline/g-last.pth"
+    resume = "results/RFBESRNet_baseline/g_last.pth.tar"
+    resume_d = ""
+    resume_g = ""
 
     # Total num epochs
-    epochs = 120
+    epochs = 534
+
+    # Feature extraction layer parameter configuration
+    feature_model_extractor_node = "features.34"
+    feature_model_normalize_mean = [0.485, 0.456, 0.406]
+    feature_model_normalize_std = [0.229, 0.224, 0.225]
 
     # Loss function weight
     pixel_weight = 10.0
     content_weight = 1.0
     adversarial_weight = 0.005
 
-    # Adam optimizer parameter for Discriminator
-    d_model_lr = 1e-4
-    d_model_betas = (0.9, 0.99)
+    # Adam optimizer parameter
+    model_lr = 1e-4
+    model_betas = (0.9, 0.99)
 
-    # Adam optimizer parameter for Generator
-    g_model_lr = 1e-4
-    g_model_betas = (0.9, 0.99)
+    # MultiStepLR scheduler parameter
+    lr_scheduler_milestones = [int(epochs * 0.125), int(epochs * 0.250), int(epochs * 0.500), int(epochs * 0.750)]
+    lr_scheduler_gamma = 0.5
 
-    # MultiStepLR scheduler parameter for RFB-ESRGAN
-    d_optimizer_milestones = [int(epochs * 0.125), int(epochs * 0.250), int(epochs * 0.500), int(epochs * 0.750)]
-    g_optimizer_milestones = [int(epochs * 0.125), int(epochs * 0.250), int(epochs * 0.500), int(epochs * 0.750)]
-    d_optimizer_gamma = 0.5
-    g_optimizer_gamma = 0.5
+    print_frequency = 100
 
-    # Print the training log every one hundred iterations
-    print_frequency = 500
-
-# ==============================================================================
-# Verify configuration
-# ==============================================================================
 if mode == "valid":
     # Test data address
     lr_dir = f"data/Set5/LRbicx{upscale_factor}"
     sr_dir = f"results/test/{exp_name}"
     hr_dir = f"data/Set5/GTmod12"
 
-    model_path = f"results/{exp_name}/g-last.pth"
+    model_path = f"results/{exp_name}/g_last.pth.tar"

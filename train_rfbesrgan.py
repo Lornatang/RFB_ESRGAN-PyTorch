@@ -196,19 +196,19 @@ def load_dataset() -> [CUDAPrefetcher, CUDAPrefetcher, CUDAPrefetcher]:
 
 
 def build_model() -> [nn.Module, nn.Module]:
-    discriminator = Discriminator().to(config.device)
-    generator = Generator().to(config.device)
+    discriminator = Discriminator().to(device=config.device, memory_format=torch.channels_last)
+    generator = Generator().to(device=config.device, memory_format=torch.channels_last)
 
     return discriminator, generator
 
 
 def define_loss() -> [nn.MSELoss, nn.L1Loss, ContentLoss, nn.BCEWithLogitsLoss]:
-    psnr_criterion = nn.MSELoss().to(config.device)
-    pixel_criterion = nn.L1Loss().to(config.device)
+    psnr_criterion = nn.MSELoss().to(device=config.device)
+    pixel_criterion = nn.L1Loss().to(device=config.device)
     content_criterion = ContentLoss(config.feature_model_extractor_node,
                                     config.feature_model_normalize_mean,
-                                    config.feature_model_normalize_std).to(config.device)
-    adversarial_criterion = nn.BCEWithLogitsLoss().to(config.device)
+                                    config.feature_model_normalize_std).to(device=config.device)
+    adversarial_criterion = nn.BCEWithLogitsLoss().to(device=config.device)
 
     return psnr_criterion, pixel_criterion, content_criterion, adversarial_criterion
 
@@ -273,8 +273,8 @@ def train(discriminator,
         data_time.update(time.time() - end)
 
         # Send data to designated device
-        lr = batch_data["lr"].to(config.device, non_blocking=True)
-        hr = batch_data["hr"].to(config.device, non_blocking=True)
+        lr = batch_data["lr"].to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
+        hr = batch_data["hr"].to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
 
         # Set the real sample label to 1, and the false sample label to 0
         real_label = torch.full([lr.size(0), 1], 1.0, dtype=lr.dtype, device=config.device)
@@ -282,7 +282,7 @@ def train(discriminator,
 
         # Start training discriminator
         # Initialize the discriminator optimizer gradient
-        discriminator.zero_grad()
+        discriminator.zero_grad(set_to_none=True)
 
         # Calculate the loss of the discriminator on the high-resolution image
         with amp.autocast():
@@ -311,7 +311,7 @@ def train(discriminator,
 
         # Start training generator
         # Initialize the generator optimizer gradient
-        generator.zero_grad()
+        generator.zero_grad(set_to_none=True)
 
         # Calculate the loss of the generator on the super-resolution image
         with amp.autocast():
@@ -335,11 +335,11 @@ def train(discriminator,
         # End training generator
 
         # Calculate the scores of the two images on the discriminator
-        d_hr_probability = torch.sigmoid(torch.mean(hr_output))
-        d_sr_probability = torch.sigmoid(torch.mean(sr_output))
+        d_hr_probability = torch.sigmoid_(torch.mean(hr_output))
+        d_sr_probability = torch.sigmoid_(torch.mean(sr_output))
 
         # measure accuracy and record loss
-        psnr = 10. * torch.log10(1. / psnr_criterion(sr, hr))
+        psnr = 10. * torch.log10_(1. / psnr_criterion(sr, hr))
         pixel_losses.update(pixel_loss.item(), lr.size(0))
         content_losses.update(content_loss.item(), lr.size(0))
         adversarial_losses.update(adversarial_loss.item(), lr.size(0))
@@ -390,8 +390,8 @@ def validate(model, data_prefetcher, psnr_criterion, epoch, writer, mode) -> flo
 
         while batch_data is not None:
             # measure data loading time
-            lr = batch_data["lr"].to(config.device, non_blocking=True)
-            hr = batch_data["hr"].to(config.device, non_blocking=True)
+            lr = batch_data["lr"].to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
+            hr = batch_data["hr"].to(device=config.device, memory_format=torch.channels_last, non_blocking=True)
 
             # Mixed precision
             with amp.autocast():
@@ -409,7 +409,7 @@ def validate(model, data_prefetcher, psnr_criterion, epoch, writer, mode) -> flo
             hr_y_tensor = imgproc.image2tensor(hr_y_image, range_norm=False, half=True).to(config.device).unsqueeze_(0)
 
             # measure accuracy and record loss
-            psnr = 10. * torch.log10(1. / psnr_criterion(sr_y_tensor, hr_y_tensor))
+            psnr = 10. * torch.log10_(1. / psnr_criterion(sr_y_tensor, hr_y_tensor))
             psnres.update(psnr.item(), lr.size(0))
 
             # measure elapsed time

@@ -69,7 +69,7 @@ In the following table, the value in `()` indicates the result of the project, a
 
 | Dataset | Scale | RFBNet (PSNR) | RFB_ESRGAN (PSNR) |
 |:-------:|:-----:|:-------------:|:-----------------:|
-|  DIV8K  |  16   |  (**23.45**)  |   23.38(**-**)    |
+|  DIV8K  |  16   |  (**23.45**)  | 23.38(**23.20**)  |
 
 Low resolution / Recovered High Resolution / Ground Truth
 <span align="center"><img src="assets/result.png"/></span>

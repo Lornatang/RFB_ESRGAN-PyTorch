@@ -36,30 +36,30 @@ Contains DIV2K, DIV8K, Flickr2K, OST, T91, Set5, Set14, BSDS100 and BSDS200, etc
 
 Modify the contents of the `config.py` file as follows.
 
-- line 30: `upscale_factor` change to the magnification you need to enlarge.
-- line 32: `mode` change Set to valid mode.
-- line 110: `model_path` change weight address after training.
+- line 32: `upscale_factor` change to the magnification you need to enlarge.
+- line 34: `mode` change Set to valid mode.
+- line 114: `model_path` change weight address after training.
 
 ## Train
 
 Modify the contents of the `config.py` file as follows.
 
-- line 30: `upscale_factor` change to the magnification you need to enlarge.
-- line 32: `mode` change Set to train mode.
+- line 32: `upscale_factor` change to the magnification you need to enlarge.
+- line 34: `mode` change Set to train mode.
 
 If you want to load weights that you've trained before, modify the contents of the file as follows.
 
 ### Train RFBESRNet model
 
-- line 48: `start_epoch` change number of RFB_ESRNet training iterations in the previous round.
-- line 49: `resume` change to RFB_ESRNet weight address that needs to be loaded.
+- line 50: `start_epoch` change number of RFB_ESRNet training iterations in the previous round.
+- line 51: `resume` change to RFB_ESRNet weight address that needs to be loaded.
 
 ### Train RFBESRGAN model
 
-- line 76: `start_epoch` change number of RFB_ESRGAN training iterations in the previous round.
-- line 77: `resume` change to RFB_ESRNet weight address that needs to be loaded.
-- line 78: `resume_d` change to Discriminator weight address that needs to be loaded.
-- line 79: `resume_g` change to Generator weight address that needs to be loaded.
+- line 79: `start_epoch` change number of RFB_ESRGAN training iterations in the previous round.
+- line 80: `resume` change to RFB_ESRNet weight address that needs to be loaded.
+- line 81: `resume_d` change to Discriminator weight address that needs to be loaded.
+- line 82: `resume_g` change to Generator weight address that needs to be loaded.
 
 ### Result
 

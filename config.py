@@ -11,7 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Realize the parameter configuration function of dataset, model, training and verification code."""
 import random
 
 import numpy as np
@@ -47,7 +46,6 @@ if mode == "train_rfbesrnet":
     num_workers = 4
 
     # Incremental training and migration training
-    start_epoch = 0
     resume = ""
 
     # Total num epochs
@@ -76,7 +74,6 @@ if mode == "train_rfbesrgan":
     num_workers = 4
 
     # Incremental training and migration training
-    start_epoch = 0
     resume = "results/RFBESRNet_baseline/g_last.pth.tar"
     resume_d = ""
     resume_g = ""
@@ -111,4 +108,4 @@ if mode == "valid":
     sr_dir = f"results/test/{exp_name}"
     hr_dir = f"data/Set5/GTmod16"
 
-    model_path = f"results/{exp_name}/g_last.pth.tar"
+    model_path = "results/pretrained_models/RFBESRNet_x16-DFO2K-0bcd554c.pth.tar"
